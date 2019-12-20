@@ -1,0 +1,16 @@
+# Python
+.pyc
+__pycache__/
+/tmp/
+.cache/
+
+# Python building
+build/
+*-info/
+dist/
+
+
+# Temporary test files
+api_test.py
+sample_test.py
+socket_test.py
