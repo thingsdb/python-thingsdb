@@ -25,7 +25,7 @@ setup(
     description='ThingsDB Connector',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/thingsdb/ThingsDB',
+    url='https://github.com/thingsdb/python-thingsdb',
     author='Jeroen van der Heijden',
     author_email='jeroen@transceptor.technology',
     license='MIT',
