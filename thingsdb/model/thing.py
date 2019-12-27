@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from .prop import Prop
 
@@ -219,28 +220,34 @@ class Thing(ThingHash):
                 f'which does not match `{prop.spec if prop else "any"}` ({e})')
 
     def _job_del_procedure(self, data):
-        print('_job_del_procedure', data)
+        delattr(self._collection, data)
 
     def _job_del_type(self, data):
+        # we can just as well keep the type so simply ignore this evet
         pass
 
     def _job_mod_type_add(self, data):
-        print('_job_mod_type_add', data)
+        self._collection._update_type_add(data)
 
     def _job_mod_type_del(self, data):
-        print('_job_mod_type_del', data)
+        self._collection._update_type_del(data)
 
     def _job_mod_type_mod(self, data):
-        print('_job_mod_type_mod', data)
-
-    def _job_new_procedure(self, data):
-        print('_job_new_procedure', data)
-
-    def _job_new_type(self, data):
+        # we do not care about the specification so simply ignore this event
         pass
 
+    def _job_new_procedure(self, data):
+        name, = data
+        asyncio.ensure_future(
+            self._collection.load_procedure(name),
+            loop = self._collection._client._loop)
+
+    def _job_new_type(self, data):
+        data['fields'] = []
+        self._collection._update_type(data)
+
     def _job_set_type(self, data):
-        self._collection._set_type(data)
+        self._collection._update_type(data)
 
     _UPDMAP = {
         # Thing jobs

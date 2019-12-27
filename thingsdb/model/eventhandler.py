@@ -44,10 +44,8 @@ class EventHandler(Events):
     def on_watch_delete(self, data):
         thing_id = data['#']
         thing = self._collection._things.get(thing_id)
-        if thing is None:
-            logging.debug(
-                f'Cannot update #{thing_id} since the thing is not registerd '
-                f'for watching by collection `{self._collection._name}`')
-            return
-
-        thing.on_delete()
+        if thing is not None:
+            # since weakref is used, the thing is probably already removed and
+            # the code will not reach this point, unless there are references
+            # left.
+            thing.on_delete()

@@ -47,7 +47,6 @@ class PropTypes:
             thing.__dict__.update(v)
         else:
             fmap = collection._types.get(type_id)
-            print(fmap)
             if fmap:
                 thing.__dict__.update(zip(fmap, v['']))
 

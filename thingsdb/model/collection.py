@@ -1,5 +1,6 @@
 import asyncio
 import weakref
+import functools
 from typing import Iterable, Optional, Union, TextIO, Type, Any
 from ..client import Client
 from .eventhandler import EventHandler
@@ -44,7 +45,19 @@ class Collection(Thing):
 
         procedures = await self.query('procedures_info();')
         for procedure in procedures:
-            print(procedure)
+            # TODO: catch exception ?
+            setattr(self, procedure['name'], functools.partial(
+                self._client.run,
+                procedure['name'],
+                scope=self._scope))
+
+    async def load_procedure(self, name:str) -> None:
+        procedure = await self.query(f'procedure_info("{name}");')
+        # TODO: catch exception ?
+        setattr(self, procedure['name'], functools.partial(
+            self._client.run,
+            procedure['name'],
+            scope=self._scope))
 
     async def refresh_types(self) -> None:
         """Refresh types info.
@@ -61,6 +74,14 @@ class Collection(Thing):
 
     def _update_type(self, data):
         self._types[data['type_id']] = tuple(k[0] for k in data['fields'])
+
+    def _update_type_add(self, data):
+        self._types[data['type_id']] += data['name'],
+
+    def _update_type_del(self, data):
+        type_id, name = data['type_id'], data['name']
+        t = self._types[type_id]
+        self._types[type_id] = tuple(p for p in t if p != name)
 
     async def build(
             self,
