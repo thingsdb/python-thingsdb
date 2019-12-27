@@ -10,6 +10,12 @@ from .protocol import Proto
 from .protocol import Protocol
 from .abc.events import Events
 from ..util.convert import convert
+from ..exceptions import ForbiddenError
+
+
+_WATCH_MISSING = \
+    'auto reconnect cannot act on node changes since `WATCH` privileges on ' \
+    'the `@node` scope are missing'
 
 
 class Client(Buildin):
@@ -30,7 +36,10 @@ class Client(Buildin):
                 When set to `True`, the client will automatically
                 reconnect when a connection is lost. If set to `False` and the
                 connection gets lost, one may call the `reconnect()` method to
-                make a new connection. Defaults to True.
+                make a new connection. The auto-reconnect option can act on
+                node changes and does so automatically if the connected user
+                has the required `WATCH` privileges on the `@node` scope.
+                Defaults to `True`.
             ssl (SSLContext or bool, optional):
                 Accepts an ssl.SSLContext for creating a secure connection
                 using SSL/TLS. This argument may simply be set to `True` in
@@ -39,7 +48,7 @@ class Client(Buildin):
             loop (AbstractEventLoop, optional):
                 Can be used to run the client on a specific event loop.
                 If this argument is not used, the default event loop will be
-                used. Defaults to None.
+                used. Defaults to `None`.
         """
 
         self._loop = loop if loop else asyncio.get_event_loop()
@@ -276,7 +285,10 @@ class Client(Buildin):
         await self._authenticate(timeout)
 
         if self._reconnect:
-            await self.watch(scope='@n')
+            try:
+                await self.watch(scope='@n')
+            except ForbiddenError:
+                logging.warning(_WATCH_MISSING)
 
     def query(
             self,
@@ -554,7 +566,10 @@ class Client(Buildin):
         await self._authenticate(timeout=5)
 
         if self._reconnect:
-            await self.watch(scope='@n')
+            try:
+                await self.watch(scope='@n')
+            except ForbiddenError:
+                logging.warning(_WATCH_MISSING)
 
         for event_handler in self._event_handlers:
             event_handler.on_reconnect()
