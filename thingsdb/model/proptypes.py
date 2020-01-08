@@ -51,7 +51,7 @@ class PropTypes:
                 thing.__dict__.update(zip(fmap, v['']))
 
         if watch and not thing:
-            collection.add_pending(thing)
+            collection._add_pending(thing)
 
         return thing
 

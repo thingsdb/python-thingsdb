@@ -24,64 +24,13 @@ class Collection(Thing):
         for p in self._props.values():
             p.unpack(self)
 
-    async def load(self, client: Client, load_procedures: bool = True) -> None:
+    async def load(self, client: Client) -> None:
         assert self._client is None, 'This collection is already loaded'
         self._client = client
         id = await self._client.query('.id()', scope=self._scope)
         super().__init__(self, id)
         client.add_event_handler(EventHandler(self))
         await self._client.watch(id, scope=self._scope)
-        await self.refresh_types()
-        if load_procedures:
-            await self.load_procedures()
-
-    async def load_procedures(self) -> None:
-        """Load (re-load) all procedures.
-
-        Procedures in the collection will be added to the collection as async
-        methods.
-        """
-        assert self._client is not None, 'This collection is not loaded'
-
-        procedures = await self.query('procedures_info();')
-        for procedure in procedures:
-            # TODO: catch exception ?
-            setattr(self, procedure['name'], functools.partial(
-                self._client.run,
-                procedure['name'],
-                scope=self._scope))
-
-    async def load_procedure(self, name:str) -> None:
-        procedure = await self.query(f'procedure_info("{name}");')
-        # TODO: catch exception ?
-        setattr(self, procedure['name'], functools.partial(
-            self._client.run,
-            procedure['name'],
-            scope=self._scope))
-
-    async def refresh_types(self) -> None:
-        """Refresh types info.
-
-        Procedures in the collection will be added to the collection as async
-        methods.
-        """
-        assert self._client is not None, 'This collection is not loaded'
-
-        self._types = {}
-        types_info = await self.query('types_info();')
-        for type_info in types_info:
-            self._update_type(type_info)
-
-    def _update_type(self, data):
-        self._types[data['type_id']] = tuple(k[0] for k in data['fields'])
-
-    def _update_type_add(self, data):
-        self._types[data['type_id']] += data['name'],
-
-    def _update_type_del(self, data):
-        type_id, name = data['type_id'], data['name']
-        t = self._types[type_id]
-        self._types[type_id] = tuple(p for p in t if p != name)
 
     async def build(
             self,
@@ -157,16 +106,12 @@ class Collection(Thing):
     def on_reconnect(self):
         """Called from the `EventHandler`."""
         self._pending.update(self._things.keys())
+        self._go_pending()
 
-        self.go_pending()
-
-    def add_pending(self, thing):
+    def _add_pending(self, thing):
         self._pending.add(thing.id())
 
-    def pop(self, thing):
-        self._things.pop(thing.id())
-
-    def go_pending(self):
+    def _go_pending(self):
         if not self._pending:
             return
         future = asyncio.ensure_future(
@@ -176,5 +121,23 @@ class Collection(Thing):
         self._pending.clear()
         return future
 
-    def register(self, thing: Thing) -> None:
+    def _register(self, thing: Thing) -> None:
         self._things[thing._id] = thing
+
+    def _set_procedure(self, data):
+        name = data['name']
+        setattr(self, name, functools.partial(
+            self._client.run,
+            name,
+            scope=self._scope))
+
+    def _update_type(self, data):
+        self._types[data['type_id']] = tuple(k[0] for k in data['fields'])
+
+    def _update_type_add(self, data):
+        self._types[data['type_id']] += data['name'],
+
+    def _update_type_del(self, data):
+        type_id, name = data['type_id'], data['name']
+        t = self._types[type_id]
+        self._types[type_id] = tuple(p for p in t if p != name)

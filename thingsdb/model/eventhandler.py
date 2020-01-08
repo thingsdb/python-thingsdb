@@ -29,6 +29,11 @@ class EventHandler(Events):
             return
 
         thing.on_init(data['event'], thing_dict)
+        if thing is self._collection:
+            for procedure in data['procedures']:
+                thing._set_procedure(procedure)
+            for type_info in data['types']:
+                thing._update_type(type_info)
 
     def on_watch_update(self, data):
         thing_id = data['#']

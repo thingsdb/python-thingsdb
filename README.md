@@ -164,7 +164,7 @@ after calling this method if this is required.
 ### connect
 
 ```python
-async Client().connect(
+Client().connect(
     host: str,
     port: int = 9200,
     timeout: Optional[int] = 5
@@ -202,7 +202,7 @@ set to `None` when successful.
 ### connect_pool
 
 ```python
-async Client().connect_pool(
+Client().connect_pool(
     pool: list,
     *auth: Union[str, tuple]
 ) -> asyncio.Future

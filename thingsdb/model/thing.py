@@ -12,7 +12,7 @@ def checkevent(f):
             return
         self._event_id = event_id
         f(self, event_id, *args)
-        self._collection.go_pending()
+        self._collection._go_pending()
     return wrapper
 
 
@@ -56,7 +56,7 @@ class Thing(ThingHash):
         self._collection = collection
         cls._any = Prop.get_conv('any', klass=Thing, collection=collection)
         cls._thing = Prop.get_conv('thing', klass=Thing, collection=collection)
-        collection.register(self)
+        collection._register(self)
 
     def __init_subclass__(cls):
         cls._props = {}
@@ -102,7 +102,7 @@ class Thing(ThingHash):
                 jobfun(self, job)
 
     def on_delete(self):
-        self._collection.pop(self)
+        self._collection._things.pop(self.id())
 
     def _job_add(self, pair):
         cls = self.__class__
@@ -187,7 +187,7 @@ class Thing(ThingHash):
 
             setattr(self, k, v)
 
-        self._collection.go_pending()
+        self._collection._go_pending()
 
     def _job_splice(self, pair):
         cls = self.__class__
@@ -238,9 +238,7 @@ class Thing(ThingHash):
 
     def _job_new_procedure(self, data):
         name, = data
-        asyncio.ensure_future(
-            self._collection.load_procedure(name),
-            loop = self._collection._client._loop)
+        self._collection._set_procedure({'name': name})
 
     def _job_new_type(self, data):
         data['fields'] = []
