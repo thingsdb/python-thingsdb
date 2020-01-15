@@ -223,7 +223,7 @@ class Thing(ThingHash):
         delattr(self._collection, data)
 
     def _job_del_type(self, data):
-        # we can just as well keep the type so simply ignore this evet
+        # we can just as well keep the type so simply ignore this event
         pass
 
     def _job_mod_type_add(self, data):
