@@ -237,8 +237,7 @@ class Thing(ThingHash):
         pass
 
     def _job_new_procedure(self, data):
-        name, = data
-        self._collection._set_procedure({'name': name})
+        self._collection._set_procedure(data)
 
     def _job_new_type(self, data):
         data['fields'] = []

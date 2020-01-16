@@ -350,7 +350,7 @@ class Client(Buildin):
             scope = self._scope
 
         if kwargs:
-            if convert_args:
+            if convert_vars:
                 kwargs = {k: convert(v) for k, v in kwargs.items()}
             data = [scope, code, kwargs]
         else:
