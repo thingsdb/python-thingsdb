@@ -104,6 +104,9 @@ class Thing(ThingHash):
     def on_delete(self):
         self._collection._things.pop(self.id())
 
+    def on_stop(self):
+        logging.warning(f'stopped watching thing {self}')
+
     def _job_add(self, pair):
         cls = self.__class__
         (k, v), = pair.items()

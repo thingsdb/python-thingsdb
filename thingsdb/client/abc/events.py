@@ -12,6 +12,7 @@ class Events(abc.ABC):
             Proto.ON_WATCH_INI: self.on_watch_init,
             Proto.ON_WATCH_UPD: self.on_watch_update,
             Proto.ON_WATCH_DEL: self.on_watch_delete,
+            Proto.ON_WATCH_STOP: self.on_watch_stop,
         }
 
     def __call__(self, tp: Proto, data: Any) -> None:
@@ -72,7 +73,14 @@ class Events(abc.ABC):
         job. for example:
 
         {
-
+            "#": 123,
+            "jobs": [
+                {
+                    "set": {
+                        "answer": 42
+                    }
+                }
+            ]
         }
         """
         pass
@@ -84,7 +92,22 @@ class Events(abc.ABC):
         for example:
 
         {
+            "#": 123
+        }
+        """
+        pass
 
+    @abc.abstractmethod
+    def on_watch_stop(self, data: dict) -> None:
+        """On watch stop.
+        The thing is not watched anymore due to either call to `unwatch()`, or
+        by a unwatch request (REQ_UNWATCH). This event is *not* triggered when
+        a connection to a node has been lost.
+
+        for example:
+
+        {
+            "#": 123
         }
         """
         pass

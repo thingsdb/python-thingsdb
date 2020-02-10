@@ -33,7 +33,8 @@ class Proto(enum.IntEnum):
     ON_WATCH_INI = 0x01
     ON_WATCH_UPD = 0x02
     ON_WATCH_DEL = 0x03
-    ON_WARN = 0x04
+    ON_WATCH_STOP = 0x04
+    ON_WARN = 0x05
 
     # Responses
     RES_PING = 0x10
@@ -115,6 +116,7 @@ _PROTO_EVENTS = (
     Proto.ON_WATCH_INI,
     Proto.ON_WATCH_UPD,
     Proto.ON_WATCH_DEL,
+    Proto.ON_WATCH_STOP,
     Proto.ON_WARN
 )
 

@@ -54,3 +54,10 @@ class EventHandler(Events):
             # the code will not reach this point, unless there are references
             # left.
             thing.on_delete()
+
+    def on_watch_stop(self, data):
+        thing_id = data['#']
+        thing = self._collection._things.get(thing_id)
+        if thing is not None:
+            thing.on_stop()
+
