@@ -197,7 +197,10 @@ class Protocol(asyncio.Protocol):
                 if tp in _PROTO_RESPONSE_MAP:
                     self._on_response(self.package)
                 elif tp in _PROTO_EVENTS:
-                    self._on_event(self.package)
+                    try:
+                        self._on_event(self.package)
+                    except Exception as e:
+                        logging.exception(e)
                 else:
                     logging.error(f'Unsupported package type received: {tp}')
 
