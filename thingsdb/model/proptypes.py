@@ -80,6 +80,12 @@ class PropTypes:
         return v
 
     @staticmethod
+    def bool_(v):
+        if not isinstance(v, bool):
+            raise TypeError(f'expecting type `bool`, got `{type(v)}`')
+        return v
+
+    @staticmethod
     def int_(v):
         if not isinstance(v, int):
             raise TypeError(f'expecting type `int`, got `{type(v)}`')
@@ -107,6 +113,19 @@ class PropTypes:
             raise TypeError(f'expecting type `int`, got `{type(v)}`')
         if v >= 0:
             raise ValueError(f'expecting an integer value < 0, got {v}')
+        return v
+
+    @staticmethod
+    def float_(v):
+        if not isinstance(v, float):
+            raise TypeError(f'expecting type `float`, got `{type(v)}`')
+        return v
+
+    @staticmethod
+    def number_(v):
+        if not isinstance(v, (float, int)):
+            raise TypeError(
+                f'expecting type `int` or `float`, got `{type(v)}`')
         return v
 
     @staticmethod
