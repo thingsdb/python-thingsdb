@@ -364,7 +364,8 @@ Client().run(
     *args: Optional[Any],
     scope: Optional[str] = None,
     timeout: Optional[int] = None,
-    convert_args: bool = True
+    convert_args: bool = True,
+    **kwargs: Any
 ) -> asyncio.Future
 ```
 
@@ -377,8 +378,9 @@ Use this method to run a stored procedure in a scope.
 - *procedure (str)*:
     Name of the procedure to run.
 - *\*args (any)*:
-    Arguments which are injected as the procedure arguments. The
-    number of args must match the number the procedure requires.
+    Arguments which are injected as the procedure arguments.
+    Instead of positional, the arguments may also be parsed using
+    keyword arguments but not both at the same time.
 - *scope (str, optional)*:
     Run the procedure in this scope. If not specified, the default
     scope will be used.
@@ -395,6 +397,10 @@ Use this method to run a stored procedure in a scope.
     it's ID and with conversion the `#` will be extracted. When
     this argument is `False`, the `*args` stay untouched.
     Defaults to `True`.
+- *\*\*kwargs (any, optional)*:
+     Arguments which are injected as the procedure arguments.
+    Instead of by name, the arguments may also be parsed using
+    positional arguments but not both at the same time.
 
 #### Returns
 

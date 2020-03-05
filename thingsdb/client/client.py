@@ -364,7 +364,8 @@ class Client(Buildin):
             *args: Optional[Any],
             scope: Optional[str] = None,
             timeout: Optional[int] = None,
-            convert_args: bool = True
+            convert_args: bool = True,
+            **kwargs: Any,
     ) -> asyncio.Future:
         """Run a procedure.
 
@@ -374,8 +375,9 @@ class Client(Buildin):
             procedure (str):
                 Name of the procedure to run.
             *args (any):
-                Arguments which are injected as the procedure arguments. The
-                number of args must match the number the procedure requires.
+                Arguments which are injected as the procedure arguments.
+                Instead of positional, the arguments may also be parsed using
+                keyword arguments but not both at the same time.
             scope (str, optional):
                 Run the procedure in this scope. If not specified, the default
                 scope will be used.
@@ -392,6 +394,10 @@ class Client(Buildin):
                 it's ID and with conversion the `#` will be extracted. When
                 this argument is `False`, the `*args` stay untouched.
                 Defaults to `True`.
+            **kwargs (any):
+                Arguments which are injected as the procedure arguments.
+                Instead of by name, the arguments may also be parsed using
+                positional arguments but not both at the same time.
 
         Returns:
             asyncio.Future (any):
@@ -410,11 +416,17 @@ class Client(Buildin):
         if scope is None:
             scope = self._scope
 
-        arguments = (convert(arg) for arg in args) if convert_args else args
+        if kwargs:
+            args = {
+                k: convert(v)
+                for k, v in kwargs.items()
+            } if convert_args else kwargs
+        elif args and convert_args:
+            args = [convert(arg) for arg in args]
 
         return self._protocol.write(
             Proto.REQ_RUN,
-            [scope, procedure, *arguments],
+            [scope, procedure, args],
             timeout=timeout)
 
     def watch(self, *ids: int, scope: Optional[str] = None) -> asyncio.Future:
