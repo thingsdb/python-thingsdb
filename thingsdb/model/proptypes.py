@@ -41,6 +41,8 @@ class PropTypes:
 
         if thing is None:
             thing = klass(collection, thing_id)
+        else:
+            watch = False
 
         type_id = v.pop('.', None)
         if type_id is None:
