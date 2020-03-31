@@ -550,7 +550,7 @@ class Bar(Thing):
     other = 'Bar', lambda: Bar
 
 class Foo(Collection):
-    bar: 'Bar', Bar
+    bar = 'Bar', Bar
 
 async def example():
     client = Client()
