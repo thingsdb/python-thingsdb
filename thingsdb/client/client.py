@@ -559,6 +559,7 @@ class Client(Buildin):
             host, port = self._pool[self._pool_idx]
             try:
                 await self._connect(timeout=timeout)
+                await self._ping(timeout=2)
             except Exception as e:
                 logging.error(
                     f'connecting to {host}:{port} failed ({e}), '
@@ -585,6 +586,12 @@ class Client(Buildin):
 
         for event_handler in self._event_handlers:
             event_handler.on_reconnect()
+
+    def _ping(self, timeout):
+        if self._protocol is None:
+            raise ConnectionError('no connection')
+
+        return self._protocol.write(Proto.REQ_PING, timeout=timeout)
 
     def _authenticate(self, timeout):
         if self._protocol is None:
