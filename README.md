@@ -530,13 +530,17 @@ class Foo(Collection):
 
 In the example above, the ThingsDB collection name must be equal to the Python Class name, `Foo` in this case.
 It may be useful to use a different Python Class name than the ThingsDB collection
-name. This can be achieved by using the magic attribute `__COLLECTION_NAME__`, for example:
+name. This can be achieved by initializing the collection with a name attribute, for example `foo = Foo(name='foo')`.
+As an alternative, the magic attribute `__COLLECTION_NAME__` can be used , for example:
 
 ```python
 class Stuff(Collection):
     # the ThingsDB collection name is `stuff`, all lower case characters
     __COLLECTION_NAME__ = 'stuff'
 ```
+
+If both a `name` argument and the magic attribute `__COLLECTION_NAME__` are used, the `name` argument wins.
+
 
 ### Thing
 

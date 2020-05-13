@@ -80,6 +80,12 @@ class Thing(ThingHash):
     def id(self):
         return self._id
 
+    def get_collection(self):
+        return self._collection
+
+    def get_client(self):
+        return self._collection._client
+
     def watch(self):
         collection = self._collection
         return collection._client.watch(self._id, scope=collection._scope)

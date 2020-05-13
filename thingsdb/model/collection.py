@@ -12,10 +12,11 @@ class Collection(Thing):
     __STRICT__ = True
     __AS_TYPE__ = False
 
-    def __init__(self):
+    def __init__(self, name=None):
         self._things = weakref.WeakValueDictionary()
         self._name = \
-            getattr(self, '__COLLECTION_NAME__', self.__class__.__name__)
+            getattr(self, '__COLLECTION_NAME__', self.__class__.__name__) \
+            if name is None else name
         self._scope = f'//{self._name}'
         self._pending = set()  # Thing ID's
         self._client = None  # use load, build or rebuild
