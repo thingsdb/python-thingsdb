@@ -1,5 +1,6 @@
 import functools
 from .proptypes import PropTypes
+from .enum import Enum
 
 
 class Prop:
@@ -82,6 +83,10 @@ class Prop:
             self.model = cb_type \
                 if isinstance(cb_type, type) and issubclass(cb_type, Thing) \
                 else cb_type()
+
+            if isinstance(self.model, Enum):
+                self.vconv = self.get_conv('enum', collection=collection)
+                return
 
             name = self.model._type_name
 

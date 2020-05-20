@@ -193,7 +193,6 @@ class Thing(ThingHash):
                     f'not match `{prop.spec if prop else "any"}` ({repr(e)})')
                 if not cls.__SET_ANYWAY__:
                     continue
-
             setattr(self, k, v)
 
         self._collection._go_pending()

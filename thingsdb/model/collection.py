@@ -5,6 +5,7 @@ from typing import Iterable, Optional, Union, TextIO, Type, Any
 from ..client import Client
 from .eventhandler import EventHandler
 from .thing import Thing
+from .enum import Enum
 
 
 class Collection(Thing):
@@ -21,7 +22,8 @@ class Collection(Thing):
         self._pending = set()  # Thing ID's
         self._client = None  # use load, build or rebuild
         self._id = None
-        self._types = {}  # mapping where the keys is a type_id
+        self._types = {}  # mapping where keys are type_id
+        self._enums = {}  # mapping where keys are enum_id
         for p in self._props.values():
             p.unpack(self)
 
@@ -87,12 +89,13 @@ class Collection(Thing):
             for model in classes:
                 await model._set_type(client, self)
 
-        for script in scripts:
-            code = script if isinstance(script, str) else script.read()
-            await client.query(
-                code=code,
-                scope=self._scope,
-                convert_vars=False)
+        if scripts is not None:
+            for script in scripts:
+                code = script if isinstance(script, str) else script.read()
+                await client.query(
+                    code=code,
+                    scope=self._scope,
+                    convert_vars=False)
 
     async def query(self, code: str, **kwargs: Any) -> Any:
         """Query using this collection as scope.
@@ -142,3 +145,10 @@ class Collection(Thing):
         type_id, name = data['type_id'], data['name']
         t = self._types[type_id]
         self._types[type_id] = tuple(p for p in t if p != name)
+
+    def _update_enum(self, data):
+        Enum._update_enum(self._enums, data)
+
+    def _get_enum_member(self, enum_id, idx):
+        enum = self._enums[enum_id]
+        return enum[idx]

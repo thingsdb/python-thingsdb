@@ -10,6 +10,8 @@ class PropTypes:
         if isinstance(v, dict):
             if '#' in v:
                 return PropTypes.thing_(v, klass, collection)
+            if '%' in v:
+                return collection._get_enum_member(*v['%'])
             if '$' in v:
                 return PropTypes.set_(v, nested=functools.partial(
                     klass=klass,
@@ -56,6 +58,10 @@ class PropTypes:
             collection._add_pending(thing)
 
         return thing
+
+    @staticmethod
+    def enum_(v, collection):
+        return collection._get_enum_member(*v['%'])
 
     @staticmethod
     def str_(v):
@@ -142,6 +148,8 @@ class PropTypes:
             raise TypeError(f'expecting a `dict`, got `{type(v)}`')
         v = v['$']
         return {nested(item) for item in v}
+
+    @staticmethod
 
     def nillable(v, func=None):
         return v if v is None else func(v)

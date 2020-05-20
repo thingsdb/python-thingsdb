@@ -32,6 +32,8 @@ class EventHandler(Events):
         if thing is self._collection:
             for procedure in data['procedures']:
                 thing._set_procedure(procedure)
+            for enum_info in data['enums']:
+                thing._update_enum(enum_info)
             for type_info in data['types']:
                 thing._update_type(type_info)
 
