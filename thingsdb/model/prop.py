@@ -72,9 +72,12 @@ class Prop:
         if spec == 'Thing' and cb_type is None:
             spec, kwargs['watch'] = 'thing', True
 
-        self.vconv = self.get_conv(
-            spec, is_nillable, **kwargs
-            if spec == 'any' or spec == 'thing' else {})
+        if spec == 'Enum' and cb_type is None:
+            self.vconv = self.get_conv('enum', collection=collection)
+        else:
+            self.vconv = self.get_conv(
+                spec, is_nillable, **kwargs
+                if spec == 'any' or spec == 'thing' else {})
 
         if self.vconv is None:
             assert callable(cb_type), \
