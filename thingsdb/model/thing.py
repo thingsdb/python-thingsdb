@@ -44,18 +44,13 @@ class Thing(ThingHash):
     __AS_TYPE__ = True
 
     _props = dict()
-    _any = None
-    _thing = None
     _type_name = None  # Only set when __AS_TYPE__ is True
     _visited = 0  # For build, 0=not visited, 1=new_type, 2=set_type, 3=build
 
     def __init__(self, collection, id: int):
         super().__init__(id)
-        cls = self.__class__
         self._event_id = 0
         self._collection = collection
-        cls._any = Prop.get_conv('any', klass=Thing, collection=collection)
-        cls._thing = Prop.get_conv('thing', klass=Thing, collection=collection)
         collection._register(self)
 
     def __init_subclass__(cls):
@@ -134,7 +129,7 @@ class Thing(ThingHash):
                 f'while the property is of type `{type(set_)}`')
             return
 
-        convert = prop.nconv if prop else cls._thing
+        convert = prop.nconv if prop else self.collection._conv_thing
         try:
             set_.update((convert(item) for item in v))
         except Exception as e:
@@ -177,6 +172,7 @@ class Thing(ThingHash):
 
     def _job_set(self, pairs):
         cls = self.__class__
+
         for k, v in pairs.items():
             prop = cls._props.get(k)
             if prop:
@@ -184,7 +180,8 @@ class Thing(ThingHash):
             elif cls.__STRICT__:
                 continue
             else:
-                convert = cls._any(v)
+                convert = self.collection._conv_any
+
             try:
                 v = convert(v)
             except Exception as e:
@@ -219,7 +216,7 @@ class Thing(ThingHash):
             return
 
         index, count, *items = v
-        convert = prop.nconv if prop else cls._any
+        convert = prop.nconv if prop else self.collection._conv_any
         try:
             arr[index:index+count] = (convert(item) for item in items)
         except (TypeError, ValueError) as e:
@@ -235,14 +232,26 @@ class Thing(ThingHash):
         pass
 
     def _job_mod_type_add(self, data):
-        self._collection._update_type_add(data)
+        self._collection._upd_type_add(data)
 
     def _job_mod_type_del(self, data):
-        self._collection._update_type_del(data)
+        self._collection._upd_type_del(data)
 
     def _job_mod_type_mod(self, data):
         # we do not care about the specification so simply ignore this event
         pass
+
+    def _job_mod_enum_add(self, data):
+        self._collection._upd_enum_add(data)
+
+    def _job_mod_enum_del(self, data):
+        self._collection._upd_enum_del(data)
+
+    def _job_mod_enum_mod(self, data):
+        self._collection._upd_enum_mod(data)
+
+    def _job_mod_enum_ren(self, data):
+        self._collection._upd_enum_ren(data)
 
     def _job_new_procedure(self, data):
         self._collection._set_procedure(data)
@@ -268,6 +277,10 @@ class Thing(ThingHash):
         'mod_type_add': _job_mod_type_add,
         'mod_type_del': _job_mod_type_del,
         'mod_type_mod': _job_mod_type_mod,
+        'mod_enum_add': _job_mod_enum_add,
+        'mod_enum_del': _job_mod_enum_del,
+        'mod_enum_mod': _job_mod_enum_mod,
+        'mod_enum_ren': _job_mod_enum_ren,
         'new_procedure': _job_new_procedure,
         'new_type': _job_new_type,
         'set_type': _job_set_type,

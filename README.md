@@ -657,19 +657,9 @@ When adding a new brick, for example using the following code:
             color value: #f00
 ```
 
-If you do not care about having defined the `Color` class, then you can drop this class and change the
-color specification to the plain string `"Enum"`. For example:
+If you do not care about the whole `Color` class, then you can just create an empty class like this:
 
 ```python
-class Brick(Thing):
-    color = 'Enum'
-
-    def on_init(self, *args, **kwars):
-        super().on_init(*args, **kwars)
-        print(f'''
-        Init Brick:
-            id: {self.id()}
-            color name: {self.color.name}
-            color value: {self.color.value}
-        ''')
+class Color(Enum):
+    pass
 ```

@@ -20,9 +20,9 @@ class Enum:
         _enums_lookup[cls._name] = cls
 
     @staticmethod
-    def _update_enum(enums, data):
+    def _update_enum(enums, data, convert):
         name = data['name']
-        members = tuple(Member(name, k, v) for k, v in data['members'])
+        members = [Member(name, k, convert(v)) for k, v in data['members']]
 
         enum = _enums_lookup.get(name)
         if enum is not None:
@@ -31,6 +31,53 @@ class Enum:
                 setattr(enum, member.name, member)
 
         enums[data['enum_id']] = members
+
+    @staticmethod
+    def _upd_enum_add(enums, data, convert):
+        members = enums[data['enum_id']]
+        name = members[0]._enum_name
+        member = Member(name, data['name'], convert(data['value']))
+        members.append(member)
+
+        enum = _enums_lookup.get(name)
+        if enum is not None:
+            setattr(enum, member.name, member)
+
+    @staticmethod
+    def _upd_enum_del(enums, data):
+        members = enums[data['enum_id']]
+        name = members[0]._enum_name
+
+        enum = _enums_lookup.get(name)
+        if enum is not None:
+            member = members[data['index']]
+            delattr(enum, member.name)
+
+        try:
+            # swap remove the index
+            members[data['index']] = members.pop()
+        except IndexError:
+            pass
+
+    @staticmethod
+    def _upd_enum_mod(enums, data, convert):
+        members = enums[data['enum_id']]
+        name = members[0]._enum_name
+        member = members[data['index']]
+        member._value = convert(data['value'])
+
+    @staticmethod
+    def _upd_enum_ren(enums, data):
+        members = enums[data['enum_id']]
+        name = members[0]._enum_name
+        member = members[data['index']]
+
+        enum = _enums_lookup.get(name)
+        if enum is not None:
+            delattr(enum, member.name)
+            setattr(enum, data['name'], member)
+
+        member._name = data['name']
 
     @classmethod
     async def _new_type(cls, client, collection):

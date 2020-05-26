@@ -6,6 +6,7 @@ from ..client import Client
 from .eventhandler import EventHandler
 from .thing import Thing
 from .enum import Enum
+from .prop import Prop
 
 
 class Collection(Thing):
@@ -24,6 +25,9 @@ class Collection(Thing):
         self._id = None
         self._types = {}  # mapping where keys are type_id
         self._enums = {}  # mapping where keys are enum_id
+        self._conv_any = Prop.get_conv('any', klass=Thing, collection=self)
+        self._conv_thing = Prop.get_conv('thing', klass=Thing, collection=self)
+
         for p in self._props.values():
             p.unpack(self)
 
@@ -138,16 +142,42 @@ class Collection(Thing):
     def _update_type(self, data):
         self._types[data['type_id']] = tuple(k[0] for k in data['fields'])
 
-    def _update_type_add(self, data):
+    def _upd_type_add(self, data):
         self._types[data['type_id']] += data['name'],
 
-    def _update_type_del(self, data):
+    def _upd_type_del(self, data):
         type_id, name = data['type_id'], data['name']
         t = self._types[type_id]
-        self._types[type_id] = tuple(p for p in t if p != name)
+        idx = t.index(name)
+        t = list(t)
+        try:
+            t[idx] = t.pop()  # swap remove
+        except IndexError:
+            pass
+        self._types[type_id] = tuple(t)
+
+    def _upd_type_ren(self, data):
+        type_id, name, to = data['type_id'], data['name'], data['to']
+        t = self._types[type_id]
+        idx = t.index(name)
+        t = list(t)
+        t[idx] = to
+        self._types[type_id] = tuple(t)
 
     def _update_enum(self, data):
-        Enum._update_enum(self._enums, data)
+        Enum._update_enum(self._enums, data, convert=self._conv_any)
+
+    def _upd_enum_add(self, data):
+        Enum._upd_enum_add(self._enums, data, convert=self._conv_any)
+
+    def _upd_enum_del(self, data):
+        Enum._upd_enum_del(self._enums, data)
+
+    def _upd_enum_mod(self, data):
+        Enum._upd_enum_mod(self._enums, data, convert=self._conv_any)
+
+    def _upd_enum_ren(self, data):
+        Enum._upd_enum_ren(self._enums, data)
 
     def _get_enum_member(self, enum_id, idx):
         enum = self._enums[enum_id]
