@@ -129,7 +129,7 @@ class Thing(ThingHash):
                 f'while the property is of type `{type(set_)}`')
             return
 
-        convert = prop.nconv if prop else self.collection._conv_thing
+        convert = prop.nconv if prop else self._collection._conv_thing
         try:
             set_.update((convert(item) for item in v))
         except Exception as e:
@@ -180,7 +180,7 @@ class Thing(ThingHash):
             elif cls.__STRICT__:
                 continue
             else:
-                convert = self.collection._conv_any
+                convert = self._collection._conv_any
 
             try:
                 v = convert(v)
@@ -216,7 +216,7 @@ class Thing(ThingHash):
             return
 
         index, count, *items = v
-        convert = prop.nconv if prop else self.collection._conv_any
+        convert = prop.nconv if prop else self._collection._conv_any
         try:
             arr[index:index+count] = (convert(item) for item in items)
         except (TypeError, ValueError) as e:
