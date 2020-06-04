@@ -247,6 +247,9 @@ class Thing(ThingHash):
     def _job_mod_enum_del(self, data):
         self._collection._upd_enum_del(data)
 
+    def _job_mod_enum_def(self, data):
+        self._collection._upd_enum_def(data)
+
     def _job_mod_enum_mod(self, data):
         self._collection._upd_enum_mod(data)
 
@@ -278,6 +281,7 @@ class Thing(ThingHash):
         'mod_type_del': _job_mod_type_del,
         'mod_type_mod': _job_mod_type_mod,
         'mod_enum_add': _job_mod_enum_add,
+        'mod_enum_def': _job_mod_enum_def,
         'mod_enum_del': _job_mod_enum_del,
         'mod_enum_mod': _job_mod_enum_mod,
         'mod_enum_ren': _job_mod_enum_ren,

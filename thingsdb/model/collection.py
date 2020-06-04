@@ -170,6 +170,9 @@ class Collection(Thing):
     def _upd_enum_add(self, data):
         Enum._upd_enum_add(self._enums, data, convert=self._conv_any)
 
+    def _upd_enum_def(self, data):
+        Enum._upd_enum_def(self._enums, data)
+
     def _upd_enum_del(self, data):
         Enum._upd_enum_del(self._enums, data)
 

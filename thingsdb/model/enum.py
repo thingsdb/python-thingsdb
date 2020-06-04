@@ -60,6 +60,15 @@ class Enum:
             pass
 
     @staticmethod
+    def _upd_enum_def(enums, data):
+        members = enums[data['enum_id']]
+        # swap index
+        idx = data['index']
+        tmp = members[idx]
+        members[idx] = members[0]
+        members[0] = tmp
+
+    @staticmethod
     def _upd_enum_mod(enums, data, convert):
         members = enums[data['enum_id']]
         name = members[0]._enum_name
