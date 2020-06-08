@@ -94,6 +94,16 @@ class Thing(ThingHash):
         collection = self._collection
         return collection._client.unwatch(self._id, scope=collection._scope)
 
+    def emit(self, event, *args):
+        data = {f'd{i}': v for i, v in enumerate(args)}
+        dstr = "".join((f", {k}" for k in data.keys()))
+
+        return self._collection.query(
+            f'thing(id).emit(event{dstr});',
+            id=self._id,
+            event=event,
+            **data)
+
     @checkevent
     def on_init(self, event, data):
         self._job_set(data)

@@ -47,6 +47,14 @@ async def example():
         await lego.load(client)
 
         # ... now the collection will be watched for 100 seconds
+        while True:
+            await asyncio.sleep(3)
+            if lego and lego.bricks:
+                brick = lego.bricks[0]
+                await brick.emit('new-color', 'RED')
+                break
+            await lego.query('.bricks.push(Brick{});')
+
         await asyncio.sleep(300)
 
     finally:
