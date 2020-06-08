@@ -1,6 +1,7 @@
 import asyncio
 from thingsdb.client import Client
 from thingsdb.model import Collection, Thing, ThingStrict, Enum
+from thingsdb.util import event
 
 
 class Color(Enum):
@@ -20,6 +21,11 @@ class Brick(Thing):
             color name: {self.color.name}
             color value: {self.color.value}
         ''')
+
+    @event('new-color')
+    def on_new_color(self, color):
+        print(f'brick with id {self.id()} as a new color: {color}')
+
 
 class Lego(Collection):
     bricks = '[Brick]', Brick
@@ -41,7 +47,15 @@ async def example():
         await lego.load(client)
 
         # ... now the collection will be watched for 100 seconds
-        await asyncio.sleep(100)
+        while True:
+            await asyncio.sleep(3)
+            if lego and lego.bricks:
+                brick = lego.bricks[0]
+                await brick.emit('new-color', 'RED')
+                break
+            await lego.query('.bricks.push(Brick{});')
+
+        await asyncio.sleep(300)
 
     finally:
         client.close()

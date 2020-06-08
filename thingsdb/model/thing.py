@@ -43,6 +43,7 @@ class Thing(ThingHash):
     # will be created. A Collection instance will have `False` as default.
     __AS_TYPE__ = True
 
+    _ev_handlers = dict()
     _props = dict()
     _type_name = None  # Only set when __AS_TYPE__ is True
     _visited = 0  # For build, 0=not visited, 1=new_type, 2=set_type, 3=build
@@ -54,6 +55,7 @@ class Thing(ThingHash):
         collection._register(self)
 
     def __init_subclass__(cls):
+        cls._ev_handlers = {}
         cls._props = {}
         items = {
             k: v for k, v in cls.__dict__.items() if not k.startswith('__')}
@@ -63,6 +65,9 @@ class Thing(ThingHash):
             if isinstance(val, tuple):
                 prop = cls._props[key] = Prop(*val)
                 delattr(cls, key)
+            elif callable(val) and hasattr(val, '_ev'):
+                cls._ev_handlers[val._ev] = val
+
         if cls.__AS_TYPE__:
             cls._type_name = getattr(cls, '__TYPE_NAME__', cls.__name__)
 
@@ -89,6 +94,16 @@ class Thing(ThingHash):
         collection = self._collection
         return collection._client.unwatch(self._id, scope=collection._scope)
 
+    def emit(self, event, *args):
+        data = {f'd{i}': v for i, v in enumerate(args)}
+        dstr = "".join((f", {k}" for k in data.keys()))
+
+        return self._collection.query(
+            f'thing(id).emit(event{dstr});',
+            id=self._id,
+            event=event,
+            **data)
+
     @checkevent
     def on_init(self, event, data):
         self._job_set(data)
@@ -104,6 +119,14 @@ class Thing(ThingHash):
 
     def on_delete(self):
         self._collection._things.pop(self.id())
+
+    def on_event(self, ev, *args):
+        cls = self.__class__
+        fun = cls._ev_handlers.get(ev)
+        if fun is None:
+            logging.debug(f'no event handler for {ev} on {cls.__name__}')
+            return
+        fun(self, *args)
 
     def on_stop(self):
         logging.warning(f'stopped watching thing {self}')
@@ -147,6 +170,9 @@ class Thing(ThingHash):
             delattr(self, k)
         except AttributeError:
             pass
+
+    def _job_event(self, data):
+        self.on_event(*data)
 
     def _job_remove(self, pair):
         cls = self.__class__
@@ -270,6 +296,7 @@ class Thing(ThingHash):
         # Thing jobs
         'add': _job_add,
         'del': _job_del,
+        'event': _job_event,
         'remove': _job_remove,
         'set': _job_set,
         'splice': _job_splice,
