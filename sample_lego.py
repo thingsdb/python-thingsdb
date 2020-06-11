@@ -22,6 +22,10 @@ class Brick(Thing):
             color value: {self.color.value}
         ''')
 
+    def on_update(self, event, jobs):
+         super().on_update(event, jobs)
+         print('ON BOOK UPDATE (Color: {}'.format(self.color))
+
     @event('new-color')
     def on_new_color(self, color):
         print(f'brick with id {self.id()} as a new color: {color}')
