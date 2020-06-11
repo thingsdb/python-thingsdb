@@ -181,6 +181,7 @@ class Thing(ThingHash):
         try:
             set_ = getattr(self, k)
         except AttributeError:
+            prop = cls._props.get(k)
             if prop:
                 logging.warning(
                     f'missing property `{k}` on `{self}` '
