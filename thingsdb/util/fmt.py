@@ -9,8 +9,6 @@ def _wrap(value, blobs):
         name = f'blob{idx}'
         blobs[name] = value
         return name
-    if isinstance(value, Member):
-        return value.name()
     if isinstance(value, dict):
         thing_id = value.get('#')
         if thing_id is None:

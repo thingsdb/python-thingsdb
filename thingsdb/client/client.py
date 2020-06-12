@@ -13,6 +13,7 @@ from ..util.convert import convert
 from ..exceptions import ForbiddenError
 
 
+
 _WATCH_MISSING = \
     'auto reconnect cannot act on node changes since `WATCH` privileges on ' \
     'the `@node` scope are missing'

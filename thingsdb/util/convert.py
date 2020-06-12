@@ -11,4 +11,4 @@ def convert(arg):
     if isinstance(arg, (list, tuple)):
         return [convert(v) for v in arg]
 
-    return arg
+    return getattr(arg, '_value', arg)
