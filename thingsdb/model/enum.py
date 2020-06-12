@@ -1,4 +1,4 @@
-from .member import Member
+from .enummember import EnumMember
 
 _enums_lookup = {}  # enums lookup by name
 
@@ -7,14 +7,18 @@ class Enum:
     _visited = 0  # For build, 0=not visited, 1=new_type, 2=set_type, 3=build
 
     def __init_subclass__(cls, **kwargs):
+        if issubclass(cls, EnumMember):
+            return
+
         cls._name = getattr(cls, '__NAME__', cls.__name__)
         cls._id = None
+        cls._memberclass = type(f'{cls._name}Member', (EnumMember, cls), {})
 
         # upgrade attributes to member instances
         for k, v in cls.__dict__.items():
             if k.startswith('_'):
                 continue
-            setattr(cls, k, Member(cls._name, k, v))
+            setattr(cls, k, cls._memberclass(cls._name, k, v))
 
         # register for lookup by name
         _enums_lookup[cls._name] = cls
@@ -22,9 +26,11 @@ class Enum:
     @staticmethod
     def _update_enum(enums, data, convert):
         name = data['name']
-        members = [Member(name, k, convert(v)) for k, v in data['members']]
-
         enum = _enums_lookup.get(name)
+        cls = EnumMember if enum is None else enum._memberclass
+
+        members = [cls(name, k, convert(v)) for k, v in data['members']]
+
         if enum is not None:
             enum._id = data['enum_id']
             for member in members:
@@ -36,10 +42,12 @@ class Enum:
     def _upd_enum_add(enums, data, convert):
         members = enums[data['enum_id']]
         name = members[0]._enum_name
-        member = Member(name, data['name'], convert(data['value']))
+        enum = _enums_lookup.get(name)
+        cls = EnumMember if enum is None else enum._memberclass
+
+        member = cls(name, data['name'], convert(data['value']))
         members.append(member)
 
-        enum = _enums_lookup.get(name)
         if enum is not None:
             setattr(enum, member.name, member)
 
@@ -93,7 +101,9 @@ class Enum:
         if cls._visited > 0:
             return
         cls._visited += 1
-        members = (m for m in cls.__dict__.values() if isinstance(m, Member))
+        members = (
+            m for m in cls.__dict__.values()
+            if isinstance(m, EnumMember))
         query = f'''
             set_enum('{cls._name}', {{
                 {', '.join(f'{m.name}: {m.value!r}' for m in members)}

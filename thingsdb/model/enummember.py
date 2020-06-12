@@ -1,4 +1,4 @@
-class Member:
+class EnumMember:
     def __init__(self, enum_name, name, value):
         self._name = name
         self._value = value
@@ -14,3 +14,9 @@ class Member:
 
     def __repr__(self):
         return f'{self._enum_name}{{{self._name}}}'
+
+    def __eq__(self, other):
+        return self is other or self._value == other
+
+    def __ne__(self, other):
+        return not self.__eq__(other)

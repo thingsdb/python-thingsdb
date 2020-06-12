@@ -1,6 +1,6 @@
 import asyncio
 from thingsdb.client import Client
-from thingsdb.model import Collection, Thing, ThingStrict, Enum
+from thingsdb.model import Collection, Thing, ThingStrict, Enum, EnumMember
 from thingsdb.util import event
 
 
@@ -53,13 +53,17 @@ async def example():
         # ... now the collection will be watched for 100 seconds
         while True:
             await asyncio.sleep(3)
+            print('Color:', Color.GREEN is lego.bricks[0].color)
+            print('Is Enum', isinstance(Color.GREEN, Enum))
+            print('Is EnumMember', isinstance(Color.GREEN, EnumMember))
+            print('Is Color', isinstance(Color.GREEN, Color))
             if lego and lego.bricks:
                 brick = lego.bricks[0]
                 await brick.emit('new-color', 'RED')
                 break
             await lego.query('.bricks.push(Brick{});')
 
-        await asyncio.sleep(300)
+        await asyncio.sleep(30)
 
     finally:
         client.close()
