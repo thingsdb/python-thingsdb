@@ -62,6 +62,9 @@ async def example():
                 print('Is Color', isinstance(Color.GREEN, Color))
                 print('Is True', Color.GREEN == Color("#0f0"))
                 print('Is True', Color.GREEN == Color["GREEN"])
+                print('Is True', getattr(Color, 'GREEN') == Color["GREEN"])
+                print('Is True', Color.RED.value == lego.bricks[0].color.value)
+                print('Is True', Color.RED.value == lego.bricks[0].color._value)
 
                 brick = lego.bricks[0]
                 await brick.emit('new-color', 'RED')
