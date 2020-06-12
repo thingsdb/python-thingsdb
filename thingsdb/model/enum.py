@@ -2,9 +2,28 @@ from .enummember import EnumMember
 
 _enums_lookup = {}  # enums lookup by name
 
-class Enum:
+
+class _GetAttr(type):
+    def __getitem__(cls, name):
+        for k, v in cls.__dict__.items():
+            if k == name:
+                return v
+        raise KeyError(f'no member with name `{k}`')
+
+
+class Enum(metaclass=_GetAttr):
 
     _visited = 0  # For build, 0=not visited, 1=new_type, 2=set_type, 3=build
+
+    def __new__(cls, *args):
+        if len(args) != 1:
+            return super().__new__(cls)
+
+        value = args[0]
+        for v in cls.__dict__.values():
+            if isinstance(v, EnumMember) and v._value == value:
+                return v
+        raise ValueError(f'no member with value `{value}`')
 
     def __init_subclass__(cls, **kwargs):
         if issubclass(cls, EnumMember):
