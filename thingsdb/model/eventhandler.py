@@ -19,10 +19,9 @@ class EventHandler(Events):
 
     def on_watch_init(self, data):
         thing_dict = data['thing']
-        thing_id = thing_dict.pop('#')
+        thing_id = thing_dict['#']
         thing = self._collection._things.get(thing_id)
         if thing is None:
-            thing_dict['#'] = thing_id  # restore `thing_dict`
             logging.debug(
                 f'Cannot init #{thing_id} since the thing is not registerd '
                 f'for watching by collection `{self._collection._name}`')
@@ -46,7 +45,7 @@ class EventHandler(Events):
                 f'for watching by collection `{self._collection._name}`')
             return
 
-        thing.on_update(data['event'], data.pop('jobs'))
+        thing.on_update(data['event'], data['jobs'])
 
     def on_watch_delete(self, data):
         thing_id = data['#']
@@ -62,4 +61,3 @@ class EventHandler(Events):
         thing = self._collection._things.get(thing_id)
         if thing is not None:
             thing.on_stop()
-

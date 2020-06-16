@@ -201,6 +201,9 @@ class Thing(ThingHash):
         cls = self.__class__
 
         for k, v in pairs.items():
+            if k == '#':
+                continue
+
             prop = cls._props.get(k)
             if prop:
                 convert = prop.vconv
