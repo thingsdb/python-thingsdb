@@ -80,6 +80,16 @@ class Client(Buildin):
         """
         self._event_handlers.append(event_handler)
 
+    def remove_event_handler(self, event_handler: Events) -> None:
+        """Remove an event handler.
+
+        Args:
+            event_handler (Events):
+                An instance of Events (see thingsdb.client.abc.events).
+        """
+        self._event_handlers.remove(event_handler)
+
+
     def get_event_loop(self) -> asyncio.AbstractEventLoop:
         """Can be used to get the event loop.
 

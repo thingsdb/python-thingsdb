@@ -12,5 +12,6 @@ dist/
 
 # Temporary test files
 api_test.py
-sample_test.py
+sample*.py
+
 socket_test.py
