@@ -8,7 +8,7 @@ class Emitter(Events):
 
     _ev_handlers = dict()
 
-    def __init__(self, client: Client, emitter: str, scope=None):
+    def __init__(self, client: Client, emitter: str = '', scope: str = None):
         super().__init__()
         self._event_id = 0
         self._client = client
@@ -41,7 +41,7 @@ class Emitter(Events):
     def on_warning(self, warn):
         logging.warning(f'{warn["warn_msg"]} ({warn["warn_code"]})')
 
-    def on_watch_init(self, data):
+    def on_watch_init(self, _data):
         pass
 
     def on_event(self, ev, *args):
@@ -57,7 +57,7 @@ class Emitter(Events):
         if thing_id != self._thing_id:
             return
 
-        event_id, jobs = data['event'], data.pop('jobs')
+        event_id, jobs = data['event'], data['jobs']
 
         if self._event_id > event_id:
             logging.warning(

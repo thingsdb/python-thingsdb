@@ -30,6 +30,7 @@ class Enum(metaclass=_GetAttr):
             return
 
         cls._name = getattr(cls, '__NAME__', cls.__name__)
+        cls._cname = getattr(cls, '__COLLECTION_NAME__', '')
         cls._id = None
         cls._memberclass = type(f'{cls._name}Member', (EnumMember, cls), {})
 
@@ -40,28 +41,33 @@ class Enum(metaclass=_GetAttr):
             setattr(cls, k, cls._memberclass(cls._name, k, v))
 
         # register for lookup by name
-        _enums_lookup[cls._name] = cls
+        _enums_lookup[cls._cname + cls._name] = cls
 
     @staticmethod
-    def _update_enum(enums, data, convert):
+    def _update_enum(cname, enums, data, convert):
         name = data['name']
-        enum = _enums_lookup.get(name)
+        enum = _enums_lookup.get(name, _enums_lookup.get(cname + name))
+        if enum and enum._cname and enum._cname != cname:
+            raise TypeError(
+                f'Enum type {name} is used in more than one collection; '
+                'Add __COLLECTION_NAME__ to your Enum definition to fix '
+                'this error')
         cls = EnumMember if enum is None else enum._memberclass
 
         members = [cls(name, k, convert(v)) for k, v in data['members']]
 
         if enum is not None:
+            enum._cname = cname
             enum._id = data['enum_id']
             for member in members:
                 setattr(enum, member.name, member)
 
-        enums[data['enum_id']] = members
+        enums[data['enum_id']] = members, enum
 
     @staticmethod
     def _upd_enum_add(enums, data, convert):
-        members = enums[data['enum_id']]
+        members, enum = enums[data['enum_id']]
         name = members[0]._enum_name
-        enum = _enums_lookup.get(name)
         cls = EnumMember if enum is None else enum._memberclass
 
         member = cls(name, data['name'], convert(data['value']))
@@ -72,10 +78,8 @@ class Enum(metaclass=_GetAttr):
 
     @staticmethod
     def _upd_enum_del(enums, data):
-        members = enums[data['enum_id']]
-        name = members[0]._enum_name
+        members, enum = enums[data['enum_id']]
 
-        enum = _enums_lookup.get(name)
         if enum is not None:
             member = members[data['index']]
             delattr(enum, member.name)
@@ -88,7 +92,7 @@ class Enum(metaclass=_GetAttr):
 
     @staticmethod
     def _upd_enum_def(enums, data):
-        members = enums[data['enum_id']]
+        members, _ = enums[data['enum_id']]
         # swap index
         idx = data['index']
         tmp = members[idx]
@@ -97,18 +101,16 @@ class Enum(metaclass=_GetAttr):
 
     @staticmethod
     def _upd_enum_mod(enums, data, convert):
-        members = enums[data['enum_id']]
+        members, _ = enums[data['enum_id']]
         name = members[0]._enum_name
         member = members[data['index']]
         member._value = convert(data['value'])
 
     @staticmethod
     def _upd_enum_ren(enums, data):
-        members = enums[data['enum_id']]
-        name = members[0]._enum_name
+        members, enum = enums[data['enum_id']]
         member = members[data['index']]
 
-        enum = _enums_lookup.get(name)
         if enum is not None:
             delattr(enum, member.name)
             setattr(enum, data['name'], member)

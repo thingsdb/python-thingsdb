@@ -165,10 +165,10 @@ class Collection(Thing):
         self._types[type_id] = tuple(t)
 
     def _update_enum(self, data):
-        Enum._update_enum(self._enums, data, convert=self._conv_any)
+        Enum._update_enum(self._name, self._enums, data, self._conv_any)
 
     def _upd_enum_add(self, data):
-        Enum._upd_enum_add(self._enums, data, convert=self._conv_any)
+        Enum._upd_enum_add(self._enums, data, self._conv_any)
 
     def _upd_enum_def(self, data):
         Enum._upd_enum_def(self._enums, data)
@@ -177,11 +177,11 @@ class Collection(Thing):
         Enum._upd_enum_del(self._enums, data)
 
     def _upd_enum_mod(self, data):
-        Enum._upd_enum_mod(self._enums, data, convert=self._conv_any)
+        Enum._upd_enum_mod(self._enums, data, self._conv_any)
 
     def _upd_enum_ren(self, data):
         Enum._upd_enum_ren(self._enums, data)
 
     def _get_enum_member(self, enum_id, idx):
-        enum = self._enums[enum_id]
-        return enum[idx]
+        members, _ = self._enums[enum_id]
+        return members[idx]
