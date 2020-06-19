@@ -9,13 +9,32 @@ class Emitter(Events):
     _ev_handlers = dict()
 
     def __init__(self, client: Client, emitter: str = '', scope: str = None):
+        """Initializes an emitter.
+
+        Args:
+            client (thingsdb.client.Client):
+                ThingsDB Client instance.
+            emitter (str):
+                Code which should point to the `thing` to watch for events.
+                Defaults to an empty string which is the collection.
+                Examples are:
+                   - ''
+                   - '.emitter'
+                   - '#123'
+            scope (str):
+                Collection scope. Defaults to the scope of the client.
+        """
         super().__init__()
         self._event_id = 0
         self._client = client
         self._thing_id = None
         self._scope = scope or client.get_scope()
+        if emitter == '.':
+            emitter = ''
+        if emitter:
+            emitter = f'{{{emitter}}}'
         self._code = \
-            f'{{{emitter}}}.watch(); {{{emitter}}}.id();'
+            f'{emitter}.watch(); {emitter}.id();'
         client.add_event_handler(self)
         asyncio.ensure_future(self._watch())
 
