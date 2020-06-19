@@ -588,7 +588,7 @@ be confused with the default Python Enum class.
 ```python
 import asyncio
 from thingsdb.client import Client
-from thingsdb.model import Collection, Thing, ThingStrict, Enum
+from thingsdb.model import Collection, Thing, Enum
 
 
 class Color(Enum):
