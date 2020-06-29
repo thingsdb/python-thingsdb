@@ -143,12 +143,17 @@ class Collection(Thing):
         self._types[data['type_id']] = tuple(k[0] for k in data['fields'])
 
     def _upd_type_add(self, data):
-        self._types[data['type_id']] += data['name'],
+        if 'spec' in data:  # ignore methods
+            self._types[data['type_id']] += data['name'],
 
     def _upd_type_del(self, data):
         type_id, name = data['type_id'], data['name']
         t = self._types[type_id]
-        idx = t.index(name)
+        try:
+            idx = t.index(name)
+        except ValueError:
+            return  # probably a method
+
         t = list(t)
         try:
             t[idx] = t.pop()  # swap remove
@@ -159,7 +164,10 @@ class Collection(Thing):
     def _upd_type_ren(self, data):
         type_id, name, to = data['type_id'], data['name'], data['to']
         t = self._types[type_id]
-        idx = t.index(name)
+        try:
+            idx = t.index(name)
+        except ValueError:
+            return  # probably a method
         t = list(t)
         t[idx] = to
         self._types[type_id] = tuple(t)
