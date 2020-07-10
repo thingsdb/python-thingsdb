@@ -274,6 +274,10 @@ class Thing(ThingHash):
     def _job_mod_type_ren(self, data):
         self._collection._upd_type_ren(data)
 
+    def _job_mod_type_wpo(self, data):
+        # we do not care about wrap-only mode so simply ignore this event
+        pass
+
     def _job_mod_enum_add(self, data):
         self._collection._upd_enum_add(data)
 
@@ -315,6 +319,7 @@ class Thing(ThingHash):
         'mod_type_del': _job_mod_type_del,
         'mod_type_mod': _job_mod_type_mod,
         'mod_type_ren': _job_mod_type_ren,
+        'mod_type_wpo': _job_mod_type_wpo,
         'mod_enum_add': _job_mod_enum_add,
         'mod_enum_def': _job_mod_enum_def,
         'mod_enum_del': _job_mod_enum_del,
