@@ -14,6 +14,7 @@ class PropTypes:
                 return collection._get_enum_member(*v['%'])
             if '$' in v:
                 return PropTypes.set_(v, nested=functools.partial(
+                    PropTypes.thing_,
                     klass=klass,
                     collection=collection
                 ))
@@ -31,6 +32,12 @@ class PropTypes:
                 # TODO : Return correct exception
                 return Exception(msg)
             logging.warning(f'unhandled dict: {v}')
+        if isinstance(v, list):
+            return PropTypes.array_(v, nested=functools.partial(
+                PropTypes.any_,
+                klass=klass,
+                collection=collection
+            ))
         return v
 
     @staticmethod
