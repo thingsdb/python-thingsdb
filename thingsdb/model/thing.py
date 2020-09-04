@@ -300,6 +300,17 @@ class Thing(ThingHash):
         data['fields'] = []
         self._collection._update_type(data)
 
+    def _job_rename_enum(self, data):
+        # rename a enum type
+        pass
+
+    def _job_rename_procedure(self, data):
+        self._collection._rename_procedure(data)
+
+    def _job_rename_type(self, data):
+        # we do not rename a type in python
+        pass
+
     def _job_set_type(self, data):
         self._collection._update_type(data)
 
@@ -327,6 +338,9 @@ class Thing(ThingHash):
         'mod_enum_ren': _job_mod_enum_ren,
         'new_procedure': _job_new_procedure,
         'new_type': _job_new_type,
+        'rename_enum': _job_rename_enum,
+        'rename_procedure': _job_rename_procedure,
+        'rename_type': _job_rename_type,
         'set_type': _job_set_type,
     }
 

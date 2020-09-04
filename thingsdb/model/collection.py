@@ -139,6 +139,14 @@ class Collection(Thing):
             name,
             scope=self._scope))
 
+    def _rename_procedure(self, data):
+        old = data['old']
+        name = data['name']
+        func = getattr(self, old, None)
+        if callable(func):
+            setattr(self, name, func)
+            delattr(self, old)
+
     def _update_type(self, data):
         self._types[data['type_id']] = tuple(k[0] for k in data['fields'])
 
@@ -188,6 +196,7 @@ class Collection(Thing):
         Enum._upd_enum_mod(self._enums, data, self._conv_any)
 
     def _upd_enum_ren(self, data):
+        '''Rename a enum member.'''
         Enum._upd_enum_ren(self._enums, data)
 
     def _get_enum_member(self, enum_id, idx):
