@@ -63,7 +63,7 @@ class Thing(ThingHash):
             if isinstance(val, str):
                 val = val,
             if isinstance(val, tuple):
-                prop = cls._props[key] = Prop(*val)
+                cls._props[key] = Prop(*val)
                 delattr(cls, key)
             elif callable(val) and hasattr(val, '_ev'):
                 cls._ev_handlers[val._ev] = val
@@ -136,6 +136,9 @@ class Thing(ThingHash):
         (k, v), = pair.items()
         prop = cls._props.get(k)
 
+        if not prop and cls.__STRICT__:
+            return
+
         try:
             set_ = getattr(self, k)
         except AttributeError:
@@ -177,11 +180,14 @@ class Thing(ThingHash):
     def _job_remove(self, pair):
         cls = self.__class__
         (k, v), = pair.items()
+        prop = cls._props.get(k)
+
+        if not prop and cls.__STRICT__:
+            return
 
         try:
             set_ = getattr(self, k)
         except AttributeError:
-            prop = cls._props.get(k)
             if prop:
                 logging.warning(
                     f'missing property `{k}` on `{self}` '
@@ -228,6 +234,9 @@ class Thing(ThingHash):
         cls = self.__class__
         (k, v), = pair.items()
         prop = cls._props.get(k)
+
+        if not prop and cls.__STRICT__:
+            return
 
         try:
             arr = getattr(self, k)
