@@ -7,6 +7,7 @@ from .package import Package
 from ..exceptions import AssertionError
 from ..exceptions import AuthError
 from ..exceptions import BadDataError
+from ..exceptions import CustomError
 from ..exceptions import ForbiddenError
 from ..exceptions import InternalError
 from ..exceptions import LookupError
@@ -108,7 +109,7 @@ _PROTO_RESPONSE_MAP = {
     Proto.RES_DATA: lambda f, d: f.set_result(d),
     Proto.RES_ERROR: lambda f, d: f.set_exception(_ERRMAP.get(
         d['error_code'],
-        ThingsDBError)(errdata=d)),
+        CustomError)(errdata=d)),
 }
 
 _PROTO_EVENTS = (

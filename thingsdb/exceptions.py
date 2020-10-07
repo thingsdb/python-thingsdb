@@ -15,6 +15,10 @@ class ThingsDBError(Exception):
         super().__init__(*args)
 
 
+class CustomError(ThingsDBError):
+    pass
+
+
 class OperationError(ThingsDBError):
     pass
 
