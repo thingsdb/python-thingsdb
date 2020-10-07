@@ -551,7 +551,7 @@ from thingsdb.model import Collection, Thing
 
 class Bar(Thing):
     name = 'str'
-    other = 'Bar', lambda: Bar
+    other = 'Bar?', lambda: Bar
 
 class Foo(Collection):
     bar = 'Bar', Bar
