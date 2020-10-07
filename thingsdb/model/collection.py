@@ -27,6 +27,7 @@ class Collection(Thing):
         self._enums = {}  # mapping where keys are enum_id
         self._conv_any = Prop.get_conv('any', klass=Thing, collection=self)
         self._conv_thing = Prop.get_conv('thing', klass=Thing, collection=self)
+        self._unpacked_klasses = set()
 
         for p in self._props.values():
             p.unpack(self)
@@ -128,6 +129,12 @@ class Collection(Thing):
         )
         self._pending.clear()
         return future
+
+    def _register_klass(self, klass):
+        if not klass in self._unpacked_klasses:
+            self._unpacked_klasses.add(klass)
+            for p in klass._props.values():
+                p.unpack(self)
 
     def _register(self, thing: Thing) -> None:
         self._things[thing._id] = thing

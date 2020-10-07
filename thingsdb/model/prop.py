@@ -104,9 +104,6 @@ class Prop:
             }
             self.vconv = self.get_conv('thing', is_nillable, **kwargs)
 
-            for p in self.model._props.values():
-                p.unpack(collection)
-
         if self.nconv is not None:
             vconf = self.vconv
             self.vconv = self.get_conv(*self.nconv, nested=vconf)

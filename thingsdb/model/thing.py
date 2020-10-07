@@ -52,6 +52,7 @@ class Thing(ThingHash):
         super().__init__(id)
         self._event_id = 0
         self._collection = collection
+        collection._register_klass(self)
         collection._register(self)
 
     def __init_subclass__(cls):

@@ -157,6 +157,5 @@ class PropTypes:
         return {nested(item) for item in v}
 
     @staticmethod
-
     def nillable(v, func=None):
         return v if v is None else func(v)
