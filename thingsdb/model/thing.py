@@ -52,7 +52,6 @@ class Thing(ThingHash):
         super().__init__(id)
         self._event_id = 0
         self._collection = collection
-        collection._register_klass(self)
         collection._register(self)
 
     def __init_subclass__(cls):
@@ -89,6 +88,7 @@ class Thing(ThingHash):
 
     def watch(self):
         collection = self._collection
+        collection._register_klass(self.__class__)
         return collection._client.watch(self._id, scope=collection._scope)
 
     def unwatch(self):
