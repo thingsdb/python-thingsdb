@@ -47,6 +47,7 @@ class Thing(ThingHash):
     _props = dict()
     _type_name = None  # Only set when __AS_TYPE__ is True
     _visited = 0  # For build, 0=not visited, 1=new_type, 2=set_type, 3=build
+    # _unpack = False  # set to True when there are props to unpack
 
     def __init__(self, collection, id: int):
         super().__init__(id)
@@ -59,6 +60,7 @@ class Thing(ThingHash):
         cls._props = {}
         items = {
             k: v for k, v in cls.__dict__.items() if not k.startswith('__')}
+
         for key, val in items.items():
             if isinstance(val, str):
                 val = val,
@@ -67,6 +69,9 @@ class Thing(ThingHash):
                 delattr(cls, key)
             elif callable(val) and hasattr(val, '_ev'):
                 cls._ev_handlers[val._ev] = val
+
+        # if there are props, they need to be unpacked when watched
+        # cls._unpack = bool(cls._props)
 
         if cls.__AS_TYPE__:
             cls._type_name = getattr(cls, '__TYPE_NAME__', cls.__name__)
@@ -86,8 +91,20 @@ class Thing(ThingHash):
     def get_client(self):
         return self._collection._client
 
+    @classmethod
+    def _unpack(cls, collection):
+        for p in cls._props.values():
+            p.unpack(collection)
+
+        # unpacking is no longer required
+        cls._unpack = lambda _cls, _collection: None
+
     def watch(self):
         collection = self._collection
+
+        # when calling watch directly, make sure the props are unpacked
+        self._unpack(collection)
+
         return collection._client.watch(self._id, scope=collection._scope)
 
     def unwatch(self):
