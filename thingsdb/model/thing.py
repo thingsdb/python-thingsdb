@@ -47,7 +47,6 @@ class Thing(ThingHash):
     _props = dict()
     _type_name = None  # Only set when __AS_TYPE__ is True
     _visited = 0  # For build, 0=not visited, 1=new_type, 2=set_type, 3=build
-    # _unpack = False  # set to True when there are props to unpack
 
     def __init__(self, collection, id: int):
         super().__init__(id)
@@ -69,9 +68,6 @@ class Thing(ThingHash):
                 delattr(cls, key)
             elif callable(val) and hasattr(val, '_ev'):
                 cls._ev_handlers[val._ev] = val
-
-        # if there are props, they need to be unpacked when watched
-        # cls._unpack = bool(cls._props)
 
         if cls.__AS_TYPE__:
             cls._type_name = getattr(cls, '__TYPE_NAME__', cls.__name__)
