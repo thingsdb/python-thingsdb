@@ -89,11 +89,12 @@ class Thing(ThingHash):
 
     @classmethod
     def _unpack(cls, collection):
-        for p in cls._props.values():
-            p.unpack(collection)
+        if cls._props:
+            for p in cls._props.values():
+                p.unpack(collection)
 
-        # unpacking is no longer required
-        cls._unpack = lambda _cls, _collection: None
+            # unpacking is no longer required
+            cls._unpack = lambda _cls, _collection: None
 
     def watch(self):
         collection = self._collection
