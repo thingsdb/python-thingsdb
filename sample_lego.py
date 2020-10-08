@@ -45,14 +45,14 @@ async def example():
             await lego.build(
                 client,
                 scripts=['.bricks = [];'],
-                delete_if_exists=False)
+                delete_if_exists=True)
         except KeyError:
             pass
         await lego.load(client)
 
         # ... now the collection will be watched for 100 seconds
         while True:
-            await asyncio.sleep(3)
+            await asyncio.sleep(1)
 
             if lego and lego.bricks:
 
@@ -71,7 +71,7 @@ async def example():
                 break
             await lego.query('.bricks.push(Brick{});')
 
-        await asyncio.sleep(5)
+        await asyncio.sleep(60)
 
     finally:
         client.close()

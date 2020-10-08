@@ -59,6 +59,7 @@ class Thing(ThingHash):
         cls._props = {}
         items = {
             k: v for k, v in cls.__dict__.items() if not k.startswith('__')}
+
         for key, val in items.items():
             if isinstance(val, str):
                 val = val,
@@ -86,8 +87,21 @@ class Thing(ThingHash):
     def get_client(self):
         return self._collection._client
 
+    @classmethod
+    def _unpack(cls, collection):
+        if cls._props:
+            for p in cls._props.values():
+                p.unpack(collection)
+
+            # unpacking is no longer required
+            cls._unpack = lambda _cls, _collection: None
+
     def watch(self):
         collection = self._collection
+
+        # when calling watch directly, make sure the props are unpacked
+        self._unpack(collection)
+
         return collection._client.watch(self._id, scope=collection._scope)
 
     def unwatch(self):

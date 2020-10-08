@@ -1,6 +1,7 @@
 import asyncio
 import weakref
 import functools
+import logging
 from typing import Iterable, Optional, Union, TextIO, Type, Any
 from ..client import Client
 from .eventhandler import EventHandler
@@ -27,9 +28,7 @@ class Collection(Thing):
         self._enums = {}  # mapping where keys are enum_id
         self._conv_any = Prop.get_conv('any', klass=Thing, collection=self)
         self._conv_thing = Prop.get_conv('thing', klass=Thing, collection=self)
-
-        for p in self._props.values():
-            p.unpack(self)
+        self._unpack(self)
 
     async def load(self, client: Client) -> None:
         assert self._client is None, 'This collection is already loaded'
@@ -114,6 +113,13 @@ class Collection(Thing):
     def on_reconnect(self):
         """Called from the `EventHandler`."""
         self._pending.update(self._things.keys())
+
+        n = len(self._pending)
+
+        logging.warning(
+            f'on_reconnect, try re-watching {n} '
+            f'thing{"" if n == 1 else "s"}...')
+
         self._go_pending()
 
     def _add_pending(self, thing):
