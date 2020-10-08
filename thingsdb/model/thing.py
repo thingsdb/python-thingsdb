@@ -94,7 +94,7 @@ class Thing(ThingHash):
                 p.unpack(collection)
 
             # unpacking is no longer required
-            cls._unpack = lambda _cls, _collection: None
+            cls._unpack = lambda *_args: None
 
     def watch(self):
         collection = self._collection
