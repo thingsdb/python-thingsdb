@@ -280,8 +280,12 @@ class Thing(ThingHash):
     def _job_del_procedure(self, data):
         delattr(self._collection, data)
 
+    def _job_del_enum(self, data):
+        #keep the enum so simply ignore this event
+        pass
+
     def _job_del_type(self, data):
-        # we can just as well keep the type so simply ignore this event
+        # keep the type so simply ignore this event
         pass
 
     def _job_mod_type_add(self, data):
@@ -291,14 +295,14 @@ class Thing(ThingHash):
         self._collection._upd_type_del(data)
 
     def _job_mod_type_mod(self, data):
-        # we do not care about the specification so simply ignore this event
+        # ignore the specification so simply ignore this event
         pass
 
     def _job_mod_type_ren(self, data):
         self._collection._upd_type_ren(data)
 
     def _job_mod_type_wpo(self, data):
-        # we do not care about wrap-only mode so simply ignore this event
+        # ignore wrap-only mode so simply ignore this event
         pass
 
     def _job_mod_enum_add(self, data):
@@ -331,11 +335,15 @@ class Thing(ThingHash):
         self._collection._rename_procedure(data)
 
     def _job_rename_type(self, data):
-        # we do not rename a type in python
+        # do not rename a type in python
         pass
+
+    def _job_set_enum(self, data):
+        self._collection._update_enum(data)
 
     def _job_set_type(self, data):
         self._collection._update_type(data)
+
 
     _UPDMAP = {
         # Thing jobs
@@ -347,6 +355,7 @@ class Thing(ThingHash):
         'splice': _job_splice,
 
         # Collection jobs
+        'del_enum': _job_del_enum,
         'del_procedure': _job_del_procedure,
         'del_type': _job_del_type,
         'mod_type_add': _job_mod_type_add,
@@ -364,6 +373,7 @@ class Thing(ThingHash):
         'rename_enum': _job_rename_enum,
         'rename_procedure': _job_rename_procedure,
         'rename_type': _job_rename_type,
+        'set_enum': _job_set_enum,
         'set_type': _job_set_type,
     }
 
