@@ -93,9 +93,6 @@ class Thing(ThingHash):
             for p in cls._props.values():
                 p.unpack(collection)
 
-            # unpacking is no longer required
-            cls._unpack = lambda *_args: None
-
     def watch(self):
         collection = self._collection
 
