@@ -36,6 +36,9 @@ class Buildin:
 
     async def has_collection(self, name: str):
         return await self.query(f'has_collection({name!r})', scope='@t')
+    
+    async def has_token(self, token: str):
+        return await self.query(f'has_token({token!r})', scope='@t')
 
     async def has_user(self, name: str):
         return await self.query(f'has_user({name!r})', scope='@t')
@@ -57,12 +60,26 @@ class Buildin:
         return await self.query(
             f'new_token({user!r}, {expiration_time}, {description!r})',
             scope='@t')
+    
+    async def new_user(self, name: str):
+        return await self.query(f'new_user({name!r})', scope='@t')
 
     async def node_info(self, scope='@n'):
         return await self.query('node_info()', scope=scope)
 
     async def nodes_info(self, scope='@n') -> list:
         return await self.query('nodes_info()', scope=scope)
+    
+    async def rename_collection(
+        self, 
+        collection: U[int, str], 
+        new_name: str) -> None:
+        return await self.query(
+            f'rename_collection({collection!r}, {new_name!r})', scope='@t')
+
+    async def rename_user(self, user: str, new_name: str) -> None:
+        return await self.query(
+            f'rename_user({user!r}, {new_name!r})', scope='@t')
 
     async def reset_counters(self, scope='@n') -> None:
         return await self.query('reset_counters()', scope=scope)
@@ -75,6 +92,12 @@ class Buildin:
     async def set_log_level(self, log_level: str, scope='@n') -> None:
         assert log_level in ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL')
         return await self.query(f'set_log_level({log_level})', scope=scope)
+    
+    async def set_password(self, user: str, new_password: str = None) -> None:
+        if new_password is None:
+            new_password = 'nil'
+        return await self.query(
+            f'set_password({user!r}, {new_password!r})', scope='@t')
 
     async def shutdown(self, scope='@n') -> None:
         return await self.query('shutdown()', scope=scope)
