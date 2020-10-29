@@ -156,7 +156,7 @@ class Client(Buildin):
         socket = self._protocol.transport.get_extra_info('socket', None)
         if socket is None:
             return 'unknown_addr'
-        addr, port = socket.getpeername()
+        addr, port = socket.getpeername()[:2]
         return f'{addr}:{port}'
 
     def connect_pool(
