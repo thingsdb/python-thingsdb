@@ -188,7 +188,7 @@ class Protocol(asyncio.Protocol):
             try:
                 self.package.extract_data_from(self._buffered_data)
             except KeyError as e:
-                logging.error(f'Unsupported package received: {e}')
+                logging.error(f'unsupported package received: {e}')
             except Exception as e:
                 logging.exception(e)
                 # empty the byte-array to recover from this error
@@ -203,7 +203,7 @@ class Protocol(asyncio.Protocol):
                     except Exception as e:
                         logging.exception(e)
                 else:
-                    logging.error(f'Unsupported package type received: {tp}')
+                    logging.error(f'unsupported package type received: {tp}')
 
             self.package = None
 
