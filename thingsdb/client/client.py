@@ -263,7 +263,6 @@ class Client(Buildin):
         try:
             await self._reconnect_loop()
         finally:
-            await asyncio.sleep(2)
             self._reconnecting = False
 
     async def wait_closed(self) -> None:
