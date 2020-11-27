@@ -5,12 +5,13 @@ import ssl
 from ssl import SSLContext, PROTOCOL_TLS
 from typing import Optional, Union, Any
 from deprecation import deprecated
+from concurrent.futures import CancelledError
 from .buildin import Buildin
 from .protocol import Proto
 from .protocol import Protocol
 from .abc.events import Events
 from ..util.convert import convert
-from ..exceptions import ForbiddenError
+from ..exceptions import ForbiddenError, NodeError, AuthError
 
 
 
@@ -57,6 +58,7 @@ class Client(Buildin):
         self._pool = None
         self._protocol = None
         self._pid = 0
+        self._write_pkg = self._ensure_write if auto_reconnect else self._write
         self._reconnect = auto_reconnect
         self._scope = '@t'  # default to thingsdb scope
         self._pool_idx = 0
@@ -354,9 +356,6 @@ class Client(Buildin):
             raised. See thingsdb.exceptions for all possible exceptions and
             https://docs.thingsdb.net/v0/errors/ for info on the error codes.
         """
-        if self._protocol is None:
-            raise ConnectionError('no connection')
-
         if scope is None:
             scope = self._scope
 
@@ -367,7 +366,42 @@ class Client(Buildin):
         else:
             data = [scope, code]
 
-        return self._protocol.write(Proto.REQ_QUERY, data, timeout=timeout)
+        return self._write_pkg(Proto.REQ_QUERY, data, timeout=timeout)
+
+    async def _ensure_write(
+            self,
+            tp: Proto,
+            data: Any = None,
+            is_bin: bool = False,
+            timeout: Optional[int] = None
+    ) -> asyncio.Future:
+        while True:
+            if not self.is_connected():
+                logging.info('wait for a connection')
+                await asyncio.sleep(1.0)
+                continue
+
+            try:
+                res = await self._protocol.write(tp, data, is_bin, timeout)
+            except (CancelledError, NodeError, AuthError) as e:
+                logging.error(
+                    f'error sending package: '
+                    f'{e}({e.__class__.__name__}) (will try again)')
+                await asyncio.sleep(1.0)
+                continue
+
+            return res
+
+    async def _write(
+            self,
+            tp: Proto,
+            data: Any = None,
+            is_bin: bool = False,
+            timeout: Optional[int] = None
+    ) -> asyncio.Future:
+        if not self.is_connected():
+            raise ConnectionError('no connection')
+        return await self._protocol.write(tp, data, is_bin, timeout)
 
     def run(
             self,
@@ -421,9 +455,6 @@ class Client(Buildin):
             raised. See thingsdb.exceptions for all possible exceptions and
             https://docs.thingsdb.net/v0/errors/ for info on the error codes.
         """
-        if self._protocol is None:
-            raise ConnectionError('no connection')
-
         if scope is None:
             scope = self._scope
 
@@ -435,7 +466,7 @@ class Client(Buildin):
         elif args and convert_args:
             args = [convert(arg) for arg in args]
 
-        return self._protocol.write(
+        return self._write_pkg(
             Proto.REQ_RUN,
             [scope, procedure, args],
             timeout=timeout)
@@ -468,13 +499,10 @@ class Client(Buildin):
             asyncio.Future (None):
                 Future which result will be set to `None` if successful.
         """
-        if self._protocol is None:
-            raise ConnectionError('no connection')
-
         if scope is None:
             scope = self._scope
 
-        return self._protocol.write(Proto.REQ_WATCH, [scope, *ids])
+        return self._write_pkg(Proto.REQ_WATCH, [scope, *ids])
 
     def unwatch(
             self,
@@ -503,13 +531,10 @@ class Client(Buildin):
             asyncio.Future (None):
                 Future which result will be set to `None` if successful.
         """
-        if self._protocol is None:
-            raise ConnectionError('no connection')
-
         if scope is None:
             scope = self._scope
 
-        return self._protocol.write(Proto.REQ_UNWATCH, [scope, *ids])
+        return self._write_pkg(Proto.REQ_UNWATCH, [scope, *ids])
 
     @staticmethod
     def _auth_check(auth):
@@ -556,7 +581,6 @@ class Client(Buildin):
     def _on_connection_lost(self, protocol, exc):
         if self._protocol is not protocol:
             return
-
         self._protocol = None
 
         if self._reconnect:
@@ -571,9 +595,11 @@ class Client(Buildin):
             try:
                 await self._connect(timeout=timeout)
                 await self._ping(timeout=2)
+                await self._authenticate(timeout=5)
             except Exception as e:
                 logging.error(
-                    f'connecting to {host}:{port} failed ({e}), '
+                    f'connecting to {host}:{port} failed: '
+                    f'{e}({e.__class__.__name__}), '
                     f'try next connect in {wait_time} seconds'
                 )
             else:
@@ -587,8 +613,6 @@ class Client(Buildin):
             wait_time = min(wait_time, self.MAX_RECONNECT_WAIT_TIME)
             timeout = min(timeout+1, self.MAX_RECONNECT_TIMEOUT)
 
-        await self._authenticate(timeout=5)
-
         if self._reconnect:
             try:
                 await self.watch(scope='@n')
@@ -599,19 +623,10 @@ class Client(Buildin):
             event_handler.on_reconnect()
 
     def _ping(self, timeout):
-        if self._protocol is None:
-            raise ConnectionError('no connection')
-
-        return self._protocol.write(Proto.REQ_PING, timeout=timeout)
+        return self._write(Proto.REQ_PING, timeout=timeout)
 
     def _authenticate(self, timeout):
-        if self._protocol is None:
-            raise ConnectionError('no connection')
-
-        return self._protocol.write(
-            Proto.REQ_AUTH,
-            data=self._auth,
-            timeout=timeout)
+        return self._write(Proto.REQ_AUTH, data=self._auth, timeout=timeout)
 
     @deprecated(details='Use `set_default_scope` instead')
     def use(self, scope):
