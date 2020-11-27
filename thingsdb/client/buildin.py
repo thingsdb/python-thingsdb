@@ -1,6 +1,6 @@
 import datetime
 from typing import Union as U
-
+from typing import Optional as O
 
 class Buildin:
 
@@ -42,6 +42,9 @@ class Buildin:
     async def has_collection(self, name: str):
         return await self.query(f'has_collection(name)', name=name, scope='@t')
 
+    async def has_token(self, token: str):
+        return await self.query(f'has_token(token)', token=token, scope='@t')
+
     async def has_user(self, name: str):
         return await self.query(f'has_user(name)', name=name, scope='@t')
 
@@ -51,12 +54,10 @@ class Buildin:
     async def new_token(
             self,
             user: str,
-            expiration_time: datetime.datetime = None,
+            expiration_time: O[datetime.datetime] = None,
             description: str = ''):
 
-        if expiration_time is None:
-            expiration_time = 'nil'
-        else:
+        if expiration_time is not None:
             expiration_time = int(datetime.datetime.timestamp(expiration_time))
 
         return await self.query(
@@ -66,11 +67,31 @@ class Buildin:
             description=description,
             scope='@t')
 
+    async def new_user(self, name: str):
+        return await self.query(f'new_user(name)', name=name, scope='@t')
+
     async def node_info(self, scope='@n'):
         return await self.query('node_info()', scope=scope)
 
     async def nodes_info(self, scope='@n') -> list:
         return await self.query('nodes_info()', scope=scope)
+
+    async def rename_collection(
+        self,
+        collection: U[int, str],
+        new_name: str) -> None:
+        return await self.query(
+            f'rename_collection(collection, new_name)',
+            collection=collection,
+            new_name=new_name,
+            scope='@t')
+
+    async def rename_user(self, user: str, new_name: str) -> None:
+        return await self.query(
+            f'rename_user(user, new_name)',
+            user=user,
+            new_name=new_name,
+            scope='@t')
 
     async def reset_counters(self, scope='@n') -> None:
         return await self.query('reset_counters()', scope=scope)
@@ -87,6 +108,13 @@ class Buildin:
         assert log_level in ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL')
         return await self.query(
             f'set_log_level(log_level)', log_level=log_level, scope=scope)
+
+    async def set_password(self, user: str, new_password: str = None) -> None:
+        return await self.query(
+            f'set_password(user, new_password)',
+            user=user,
+            new_password=new_password,
+            scope='@t')
 
     async def shutdown(self, scope='@n') -> None:
         return await self.query('shutdown()', scope=scope)
