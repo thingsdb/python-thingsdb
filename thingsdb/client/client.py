@@ -385,7 +385,9 @@ class Client(Buildin):
             try:
                 res = await self._protocol.write(tp, data, is_bin, timeout)
             except (CancelledError, NodeError, AuthError) as e:
-                logging.info(f'cannot write to protocol: {e}')
+                logging.error(
+                    f'error sending package: '
+                    f'{e}({e.__class__.__name__}) (will try again)')
                 await asyncio.sleep(1.0)
                 continue
 
@@ -594,9 +596,11 @@ class Client(Buildin):
             try:
                 await self._connect(timeout=timeout)
                 await self._ping(timeout=2)
+                await self._authenticate(timeout=5)
             except Exception as e:
                 logging.error(
-                    f'connecting to {host}:{port} failed ({e}), '
+                    f'connecting to {host}:{port} failed: '
+                    f'{e}({e.__class__.__name__}), '
                     f'try next connect in {wait_time} seconds'
                 )
             else:
@@ -609,8 +613,6 @@ class Client(Buildin):
             wait_time *= 2
             wait_time = min(wait_time, self.MAX_RECONNECT_WAIT_TIME)
             timeout = min(timeout+1, self.MAX_RECONNECT_TIMEOUT)
-
-        await self._authenticate(timeout=5)
 
         if self._reconnect:
             try:
