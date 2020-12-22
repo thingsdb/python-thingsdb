@@ -359,6 +359,8 @@ class Client(Buildin):
         if scope is None:
             scope = self._scope
 
+        code = code.strip()  # strip white space characters
+
         if kwargs:
             if convert_vars:
                 kwargs = {k: convert(v) for k, v in kwargs.items()}

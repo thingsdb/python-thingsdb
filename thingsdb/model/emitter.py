@@ -1,40 +1,50 @@
 import asyncio
 import logging
+from typing import Union
 from ..client import Client
 from ..client.abc.events import Events
-
 
 class Emitter(Events):
 
     _ev_handlers = dict()
 
-    def __init__(self, client: Client, emitter: str = '', scope: str = None):
+    def __init__(
+            self,
+            client: Client,
+            emitter: Union[int, str] = '',
+            scope: str = None):
         """Initializes an emitter.
 
         Args:
             client (thingsdb.client.Client):
                 ThingsDB Client instance.
-            emitter (str):
+            emitter (str/int):
                 Code which should point to the `thing` to watch for events.
                 Defaults to an empty string which is the collection.
                 Examples are:
                    - ''
                    - '.emitter'
                    - '#123'
+                Or, just the ID of the thing
             scope (str):
                 Collection scope. Defaults to the scope of the client.
         """
         super().__init__()
         self._event_id = 0
         self._client = client
-        self._thing_id = None
+
+        if isinstance(emitter, int):
+            self._thing_id = emitter
+            self._code = None
+        else:
+            self._thing_id = None
+            if emitter:
+                emitter = '' if emitter == '.' else f'{{{emitter}}}'
+            self._code = \
+                f'{emitter}.watch(); {emitter}.id();'
+
         self._scope = scope or client.get_scope()
-        if emitter == '.':
-            emitter = ''
-        if emitter:
-            emitter = f'{{{emitter}}}'
-        self._code = \
-            f'{emitter}.watch(); {emitter}.id();'
+
         client.add_event_handler(self)
         asyncio.ensure_future(self._watch())
 
@@ -44,12 +54,16 @@ class Emitter(Events):
         for key, val in cls.__dict__.items():
             if not key.startswith('__') and \
                     callable(val) and hasattr(val, '_ev'):
+                if asyncio.iscoroutinefunction(val):
+                    val = functools.partial(asyncio.ensure_future, val)
                 cls._ev_handlers[val._ev] = val
 
     async def _watch(self):
-        self._thing_id = await self._client.query(
-            self._code,
-            scope=self._scope)
+        if self._thing_id is None:
+            self._thing_id = \
+                await self._client.query(self._code, scope=self._scope)
+        else:
+            await self._client.watch(self._thing_id)
 
     def on_reconnect(self):
         asyncio.ensure_future(self._watch())
@@ -67,7 +81,7 @@ class Emitter(Events):
         cls = self.__class__
         fun = cls._ev_handlers.get(ev)
         if fun is None:
-            logging.debug(f'no event handler for {ev} on {cls.__name__}')
+            logging.debug(f'no event handler for `{ev}` on {cls.__name__}')
             return
         fun(self, *args)
 

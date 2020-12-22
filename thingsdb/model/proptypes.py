@@ -10,6 +10,10 @@ class PropTypes:
         if isinstance(v, dict):
             if '#' in v:
                 return PropTypes.thing_(v, klass, collection)
+            if '\'' in v:
+                return PropTypes.datetime_(v)
+            if '"' in v:
+                return PropTypes.timeval_(v)
             if '%' in v:
                 return collection._get_enum_member(*v['%'])
             if '$' in v:
@@ -80,7 +84,21 @@ class PropTypes:
     def utf8_(v):
         if not isinstance(v, str):
             raise TypeError(f'expecting type `str`, got `{type(v)}`')
-        return v
+        timestamp, _offset, _tz_idx = v['\'']
+        return datetime.fromtimestamp(timestamp)
+
+    @staticmethod
+    def datetime_(v):
+        if not isinstance(v, dict) or not '\'' in dict:
+            raise TypeError(f'expecting type `datetime`, got `{type(v)}`')
+        timestamp, _offset, _tz_idx = v['\'']
+        return datetime.fromtimestamp(timestamp)
+
+    @staticmethod
+    def timeval_(v):
+        if not isinstance(v, dict) or not '"' in dict:
+            raise TypeError(f'expecting type `timeval`, got `{type(v)}`')
+        return datetime.fromtimestamp(v['\''])
 
     @staticmethod
     def bytes_(v):
