@@ -84,8 +84,7 @@ class PropTypes:
     def utf8_(v):
         if not isinstance(v, str):
             raise TypeError(f'expecting type `str`, got `{type(v)}`')
-        timestamp, _offset, _tz_idx = v['\'']
-        return datetime.fromtimestamp(timestamp)
+        return v
 
     @staticmethod
     def datetime_(v):
@@ -98,7 +97,8 @@ class PropTypes:
     def timeval_(v):
         if not isinstance(v, dict) or not '"' in dict:
             raise TypeError(f'expecting type `timeval`, got `{type(v)}`')
-        return datetime.fromtimestamp(v['\''])
+        timestamp, _offset, _tz_idx = v['"']
+        return datetime.fromtimestamptimestamp)
 
     @staticmethod
     def bytes_(v):
