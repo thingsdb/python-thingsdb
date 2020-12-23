@@ -44,7 +44,7 @@ class EventHandler(Events):
             logging.debug(
                 f'Cannot update #{thing_id} since the thing is not registerd '
                 f'for watching by collection `{self._collection._name}`; '
-                f'Maybe this thing is watched as an Emitter?'))
+                f'Maybe this thing is watched as an Emitter?')
             return
 
         thing.on_update(data['event'], data['jobs'])

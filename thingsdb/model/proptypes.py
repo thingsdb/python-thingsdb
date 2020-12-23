@@ -98,7 +98,7 @@ class PropTypes:
         if not isinstance(v, dict) or not '"' in dict:
             raise TypeError(f'expecting type `timeval`, got `{type(v)}`')
         timestamp, _offset, _tz_idx = v['"']
-        return datetime.fromtimestamptimestamp)
+        return datetime.fromtimestamp(timestamp)
 
     @staticmethod
     def bytes_(v):
