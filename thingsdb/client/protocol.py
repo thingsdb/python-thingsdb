@@ -57,7 +57,7 @@ class Err(enum.IntEnum):
     """ThingsDB error codes."""
 
     # ThingsDB build-in errors
-    EX_CANCELLED_ERROR = -64
+    EX_CANCELLED = -64
     EX_OPERATION_ERROR = -63
     EX_NUM_ARGUMENTS = -62
     EX_TYPE_ERROR = -61
@@ -83,7 +83,7 @@ class Err(enum.IntEnum):
 
 
 _ERRMAP = {
-    Err.EX_CANCELLED_ERROR: CancelledError,
+    Err.EX_CANCELLED: CancelledError,
     Err.EX_OPERATION_ERROR: OperationError,
     Err.EX_NUM_ARGUMENTS: NumArgumentsError,
     Err.EX_TYPE_ERROR: TypeError,
