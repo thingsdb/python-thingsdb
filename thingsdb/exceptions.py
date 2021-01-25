@@ -1,3 +1,5 @@
+import asyncio
+
 _AssertionError = AssertionError
 _LookupError = LookupError
 _MemoryError = MemoryError
@@ -5,6 +7,7 @@ _OverflowError = OverflowError
 _ZeroDivisionError = ZeroDivisionError
 _ValueError = ValueError
 _TypeError = TypeError
+_CancelledError = asyncio.CancelledError
 
 
 class ThingsDBError(Exception):
@@ -16,6 +19,10 @@ class ThingsDBError(Exception):
 
 
 class CustomError(ThingsDBError):
+    pass
+
+
+class CancelledError(ThingsDBError, _CancelledError):
     pass
 
 
