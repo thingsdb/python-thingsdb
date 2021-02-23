@@ -128,7 +128,8 @@ class Thing(ThingHash):
             for name, job in job_dict.items():
                 jobfun = self._UPDMAP.get(name)
                 if jobfun is None:
-                    raise TypeError(f'unknown job `{name}` for `{self}`')
+                    logging.error(f'unknown job `{name}` for `{self}`')
+                    continue
                 jobfun(self, job)
 
     def on_delete(self):
@@ -298,6 +299,10 @@ class Thing(ThingHash):
         # ignore the specification so simply ignore this event
         pass
 
+    def _job_mod_type_rel(self, data):
+        # ignore the specification so simply ignore this event
+        pass
+
     def _job_mod_type_ren(self, data):
         self._collection._upd_type_ren(data)
 
@@ -360,10 +365,11 @@ class Thing(ThingHash):
         'del_type': _job_del_type,
         'mod_type_add': _job_mod_type_add,
         'mod_type_del': _job_mod_type_del,
+        'mod_enum_add': _job_mod_enum_add,
         'mod_type_mod': _job_mod_type_mod,
+        'mod_type_rel': _job_mod_type_rel,
         'mod_type_ren': _job_mod_type_ren,
         'mod_type_wpo': _job_mod_type_wpo,
-        'mod_enum_add': _job_mod_enum_add,
         'mod_enum_def': _job_mod_enum_def,
         'mod_enum_del': _job_mod_enum_del,
         'mod_enum_mod': _job_mod_enum_mod,
