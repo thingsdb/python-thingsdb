@@ -63,7 +63,7 @@ class Emitter(Events):
             self._thing_id = \
                 await self._client.query(self._code, scope=self._scope)
         else:
-            await self._client.watch(self._thing_id)
+            await self._client.watch(self._thing_id, scope=self._scope)
 
     def on_reconnect(self):
         asyncio.ensure_future(self._watch())
