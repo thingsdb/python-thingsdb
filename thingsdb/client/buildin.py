@@ -1,6 +1,7 @@
 import datetime
 from typing import Union as U
-from typing import Optional as O
+from typing import Optional
+
 
 class Buildin:
 
@@ -54,7 +55,7 @@ class Buildin:
     async def new_token(
             self,
             user: str,
-            expiration_time: O[datetime.datetime] = None,
+            expiration_time: Optional[datetime.datetime] = None,
             description: str = ''):
 
         if expiration_time is not None:
@@ -77,9 +78,9 @@ class Buildin:
         return await self.query('nodes_info()', scope=scope)
 
     async def rename_collection(
-        self,
-        collection: U[int, str],
-        new_name: str) -> None:
+            self,
+            collection: U[int, str],
+            new_name: str) -> None:
         return await self.query(
             f'rename_collection(collection, new_name)',
             collection=collection,

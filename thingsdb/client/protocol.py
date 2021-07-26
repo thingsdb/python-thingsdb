@@ -32,11 +32,11 @@ from ..exceptions import ZeroDivisionError
 class Proto(enum.IntEnum):
     # Events
     ON_NODE_STATUS = 0x00
-    ON_WATCH_INI = 0x01
-    ON_WATCH_UPD = 0x02
-    ON_WATCH_DEL = 0x03
-    ON_WATCH_STOP = 0x04
     ON_WARN = 0x05
+    ON_ROOM_JOIN = 0x06
+    ON_ROOM_LEAVE = 0x07
+    ON_ROOM_EVENT = 0x08
+    ON_ROOM_DELETE = 0x09
 
     # Responses
     RES_PING = 0x10
@@ -48,9 +48,9 @@ class Proto(enum.IntEnum):
     REQ_PING = 0x20
     REQ_AUTH = 0x21
     REQ_QUERY = 0x22
-    REQ_WATCH = 0x23
-    REQ_UNWATCH = 0x24
     REQ_RUN = 0x25
+    REQ_JOIN = 0x26
+    REQ_LEAVE = 0x27
 
 
 class Err(enum.IntEnum):
@@ -117,11 +117,11 @@ _PROTO_RESPONSE_MAP = {
 
 _PROTO_EVENTS = (
     Proto.ON_NODE_STATUS,
-    Proto.ON_WATCH_INI,
-    Proto.ON_WATCH_UPD,
-    Proto.ON_WATCH_DEL,
-    Proto.ON_WATCH_STOP,
-    Proto.ON_WARN
+    Proto.ON_WARN,
+    Proto.ON_ROOM_JOIN,
+    Proto.ON_ROOM_LEAVE,
+    Proto.ON_ROOM_EVENT,
+    Proto.ON_ROOM_DELETE,
 )
 
 

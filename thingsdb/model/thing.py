@@ -282,7 +282,7 @@ class Thing(ThingHash):
         delattr(self._collection, data)
 
     def _job_del_enum(self, data):
-        #keep the enum so simply ignore this event
+        # keep the enum so simply ignore this event
         pass
 
     def _job_del_type(self, data):

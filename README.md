@@ -97,9 +97,9 @@ Initialize a ThingsDB client
     When set to `True`, the client will automatically
     reconnect when a connection is lost. If set to `False` and the
     connection gets lost, one may call the [reconnect()](#reconnect) method to
-    make a new connection. The auto-reconnect option can act on
-    node changes and does so automatically if the connected user
-    has the required `WATCH` privileges on the `@node` scope.
+    make a new connection. The auto-reconnect option will listen to
+    node changes and automatically start a reconnect loop if the
+    *shutting-down* status is received from the node.
     Defaults to `True`.
 - *ssl (SSLContext or bool, optional)*:
     Accepts an ssl.SSLContext for creating a secure connection

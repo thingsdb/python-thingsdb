@@ -10,14 +10,7 @@ from .buildin import Buildin
 from .protocol import Proto
 from .protocol import Protocol
 from .abc.events import Events
-from ..util.convert import convert
 from ..exceptions import ForbiddenError, NodeError, AuthError
-
-
-
-_WATCH_MISSING = \
-    'auto reconnect cannot act on node changes since `WATCH` privileges on ' \
-    'the `@node` scope are missing'
 
 
 class Client(Buildin):
@@ -38,10 +31,9 @@ class Client(Buildin):
                 When set to `True`, the client will automatically
                 reconnect when a connection is lost. If set to `False` and the
                 connection gets lost, one may call the `reconnect()` method to
-                make a new connection. The auto-reconnect option can act on
-                node changes and does so automatically if the connected user
-                has the required `WATCH` privileges on the `@node` scope.
-                Defaults to `True`.
+                make a new connection. The auto-reconnect option will listen to
+                node changes and automatically start a reconnect loop if the
+                *shutting-down* status is received from the node.
             ssl (SSLContext or bool, optional):
                 Accepts an ssl.SSLContext for creating a secure connection
                 using SSL/TLS. This argument may simply be set to `True` in
@@ -69,28 +61,6 @@ class Client(Buildin):
             self._ssl = None
         else:
             self._ssl = ssl
-        self._event_handlers = []
-
-    def add_event_handler(self, event_handler: Events) -> None:
-        """Add an event handler.
-
-        Event handlers will called in the order they are added.
-
-        Args:
-            event_handler (Events):
-                An instance of Events (see thingsdb.client.abc.events).
-        """
-        self._event_handlers.append(event_handler)
-
-    def remove_event_handler(self, event_handler: Events) -> None:
-        """Remove an event handler.
-
-        Args:
-            event_handler (Events):
-                An instance of Events (see thingsdb.client.abc.events).
-        """
-        self._event_handlers.remove(event_handler)
-
 
     def get_event_loop(self) -> asyncio.AbstractEventLoop:
         """Can be used to get the event loop.
@@ -297,12 +267,6 @@ class Client(Buildin):
         self._auth = self._auth_check(auth)
         await self._authenticate(timeout)
 
-        if self._reconnect:
-            try:
-                await self.watch(scope='@n')
-            except ForbiddenError:
-                logging.warning(_WATCH_MISSING)
-
     def query(
             self,
             code: str,
@@ -473,8 +437,8 @@ class Client(Buildin):
             [scope, procedure, args],
             timeout=timeout)
 
-    def watch(self, *ids: int, scope: Optional[str] = None) -> asyncio.Future:
-        """Subscribe for changes on given things.
+    def join(self, *ids: int, scope: Optional[str] = None) -> asyncio.Future:
+        """Join one or more rooms.
 
         This method accepts one or more thing ids to subscribe to. This
         method will simply return None as soon as the subscribe request is
@@ -498,22 +462,19 @@ class Client(Buildin):
                 format a scope.
 
         Returns:
-            asyncio.Future (None):
-                Future which result will be set to `None` if successful.
+            asyncio.Future ([*ids]):
+                Future which result will be the list with ids or None for each
+                if which is not found in the collection.
         """
         if scope is None:
             scope = self._scope
 
-        return self._write_pkg(Proto.REQ_WATCH, [scope, *ids])
+        return self._write_pkg(Proto.REQ_JOIN, [scope, *ids])
 
-    def unwatch(
-            self,
-            *ids: int,
-            scope: Optional[str] = None
-    ) -> asyncio.Future:
-        """Unsubscribe for changes on given things.
+    def leave(self, *ids: int, scope: Optional[str] = None) -> asyncio.Future:
+        """Leave one or more rooms.
 
-        Stop receiving events for the things given by one or more ids. It is
+        Stop receiving events for the rooms given by one or more ids. It is
         possible that the client receives an event shortly after calling the
         unsubscribe method because the event was queued.
 
@@ -536,7 +497,7 @@ class Client(Buildin):
         if scope is None:
             scope = self._scope
 
-        return self._write_pkg(Proto.REQ_UNWATCH, [scope, *ids])
+        return self._write_pkg(Proto.REQ_LEAVE, [scope, *ids])
 
     @staticmethod
     def _auth_check(auth):
@@ -615,27 +576,8 @@ class Client(Buildin):
             wait_time = min(wait_time, self.MAX_RECONNECT_WAIT_TIME)
             timeout = min(timeout+1, self.MAX_RECONNECT_TIMEOUT)
 
-        if self._reconnect:
-            try:
-                await self.watch(scope='@n')
-            except ForbiddenError:
-                logging.warning(_WATCH_MISSING)
-
-        for event_handler in self._event_handlers:
-            event_handler.on_reconnect()
-
     def _ping(self, timeout):
         return self._write(Proto.REQ_PING, timeout=timeout)
 
     def _authenticate(self, timeout):
         return self._write(Proto.REQ_AUTH, data=self._auth, timeout=timeout)
-
-    @deprecated(details='Use `set_default_scope` instead')
-    def use(self, scope):
-        if not scope.startswith('@'):
-            scope = f'@{scope}' if scope.startswith(':') else f'@:{scope}'
-        self.set_default_scope(scope)
-
-    @deprecated(details='Use `get_default_scope` instead')
-    def get_scope(self):
-        return self._scope
