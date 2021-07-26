@@ -128,7 +128,7 @@ class Thing(ThingHash):
             for name, job in job_dict.items():
                 jobfun = self._UPDMAP.get(name)
                 if jobfun is None:
-                    logging.error(f'unknown job `{name}` for `{self}`')
+                    logging.warning(f'unhandled job `{name}` for `{self}`')
                     continue
                 jobfun(self, job)
 
