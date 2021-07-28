@@ -2,15 +2,13 @@ import asyncio
 import logging
 import random
 import ssl
+from collections import defaultdict
 from ssl import SSLContext, PROTOCOL_TLS
 from typing import Optional, Union, Any
-from deprecation import deprecated
 from concurrent.futures import CancelledError
 from .buildin import Buildin
-from .protocol import Proto
-from .protocol import Protocol
-from .abc.events import Events
-from ..exceptions import ForbiddenError, NodeError, AuthError
+from .protocol import Proto, Protocol
+from ..exceptions import NodeError, AuthError
 
 
 class Client(Buildin):
@@ -55,12 +53,23 @@ class Client(Buildin):
         self._scope = '@t'  # default to thingsdb scope
         self._pool_idx = 0
         self._reconnecting = False
+        self._rooms = dict()
+        self._rooms_lock = asyncio.Lock()
+
         if ssl is True:
             self._ssl = SSLContext(PROTOCOL_TLS)
         elif ssl is False:
             self._ssl = None
         else:
             self._ssl = ssl
+
+    def get_rooms(self):
+        """Can be used to get the rooms which are joined.
+
+        Returns:
+            a tuple with unique Room instances.
+        """
+        return tuple(self._rooms.values())
 
     def get_event_loop(self) -> asyncio.AbstractEventLoop:
         """Can be used to get the event loop.
@@ -272,7 +281,6 @@ class Client(Buildin):
             code: str,
             scope: Optional[str] = None,
             timeout: Optional[int] = None,
-            convert_vars: bool = True,
             **kwargs: Any
     ) -> asyncio.Future:
         """Query ThingsDB.
@@ -290,13 +298,6 @@ class Client(Buildin):
                 Raise a time-out exception if no response is received within X
                 seconds. If no time-out is given, the client will wait forever.
                 Defaults to `None`.
-            convert_vars (bool, optional):
-                Only applicable if `**kwargs` are given. If set to `True`, then
-                the provided **kwargs values will be converted so ThingsDB can
-                understand them. For example, a thing should be given just by
-                it's ID and with conversion the `#` will be extracted. When
-                this argument is `False`, the **kwargs stay untouched.
-                Defaults to `True`.
             **kwargs (any, optional):
                 Can be used to inject variable into the ThingsDB code.
 
@@ -324,13 +325,9 @@ class Client(Buildin):
             scope = self._scope
 
         code = code.strip()  # strip white space characters
-
+        data = [scope, code]
         if kwargs:
-            if convert_vars:
-                kwargs = {k: convert(v) for k, v in kwargs.items()}
-            data = [scope, code, kwargs]
-        else:
-            data = [scope, code]
+            data.append(kwargs)
 
         return self._write_pkg(Proto.REQ_QUERY, data, timeout=timeout)
 
@@ -343,7 +340,7 @@ class Client(Buildin):
     ) -> asyncio.Future:
         while True:
             if not self.is_connected():
-                logging.info('wait for a connection')
+                logging.info('Wait for a connection')
                 await asyncio.sleep(1.0)
                 continue
 
@@ -351,7 +348,7 @@ class Client(Buildin):
                 res = await self._protocol.write(tp, data, is_bin, timeout)
             except (CancelledError, NodeError, AuthError) as e:
                 logging.error(
-                    f'error sending package: '
+                    f'Failed to transmit package: '
                     f'{e}({e.__class__.__name__}) (will try again)')
                 await asyncio.sleep(1.0)
                 continue
@@ -375,7 +372,6 @@ class Client(Buildin):
             *args: Optional[Any],
             scope: Optional[str] = None,
             timeout: Optional[int] = None,
-            convert_args: bool = True,
             **kwargs: Any,
     ) -> asyncio.Future:
         """Run a procedure.
@@ -398,13 +394,6 @@ class Client(Buildin):
                 Raise a time-out exception if no response is received within X
                 seconds. If no time-out is given, the client will wait forever.
                 Defaults to `None`.
-            convert_args (bool, optional):
-                Only applicable if `*args` are given. If set to `True`, then
-                the provided `*args` values will be converted so ThingsDB can
-                understand them. For example, a thing should be given just by
-                it's ID and with conversion the `#` will be extracted. When
-                this argument is `False`, the `*args` stay untouched.
-                Defaults to `True`.
             **kwargs (any):
                 Arguments which are injected as the procedure arguments.
                 Instead of by name, the arguments may also be parsed using
@@ -424,54 +413,48 @@ class Client(Buildin):
         if scope is None:
             scope = self._scope
 
-        if kwargs:
-            args = {
-                k: convert(v)
-                for k, v in kwargs.items()
-            } if convert_args else kwargs
-        elif args and convert_args:
-            args = [convert(arg) for arg in args]
+        data = [scope, procedure]
 
-        return self._write_pkg(
-            Proto.REQ_RUN,
-            [scope, procedure, args],
-            timeout=timeout)
+        if args:
+            data.append(args)
+            if kwargs:
+                raise ValueError(
+                    'it is not possible to use both keyword arguments '
+                    'and positional arguments at the same time')
+        elif kwargs:
+            data.append(kwargs)
 
-    def join(self, *ids: int, scope: Optional[str] = None) -> asyncio.Future:
+        return self._write_pkg(Proto.REQ_RUN, data, timeout=timeout)
+
+    def _join(self, *ids: int, scope: Optional[str] = None) -> asyncio.Future:
         """Join one or more rooms.
-
-        This method accepts one or more thing ids to subscribe to. This
-        method will simply return None as soon as the subscribe request is
-        successful handled by ThingsDB. After the response, the client will
-        receive `INIT` events for all subscribed ids. After that, ThingsDB
-        will continue to provide the client with `UPDATE` events which contain
-        changes to the subscribed thing. A `DELETE` event might be received
-        if, and only if the thing is removed and garbage collected from the
-        collection.
 
         Args:
             *ids (int):
-                Thing IDs to subscribe to. No error is returned in case one of
-                the given things are not found within the collection, instead a
-                `WARN` event will be send to the client.
+                Room Ids to join. No error is returned in case one of
+                the given room Ids are not found within the collection.
+                Instead, the return value will contain `None` instead of the
+                Id in the returned list.
             scope (str, optional):
-                Subscribe on things in this scope. If not specified, the
+                Join room(s) in this scope. If not specified, the
                 default scope will be used. Only collection scopes may contain
-                things so only collection scopes can be used.
+                rooms so only collection scopes can be used.
                 See https://docs.thingsdb.net/v0/overview/scopes/ for how to
                 format a scope.
 
         Returns:
             asyncio.Future ([*ids]):
-                Future which result will be the list with ids or None for each
-                if which is not found in the collection.
+                Returns a Future which result will be set to a `list` with all
+                the room Ids from the request. If, and only if a given room Id
+                was not found in the collection, then the room Id at this
+                position in the list will be `None`.
         """
         if scope is None:
             scope = self._scope
 
         return self._write_pkg(Proto.REQ_JOIN, [scope, *ids])
 
-    def leave(self, *ids: int, scope: Optional[str] = None) -> asyncio.Future:
+    def _leave(self, *ids: int, scope: Optional[str] = None) -> asyncio.Future:
         """Leave one or more rooms.
 
         Stop receiving events for the rooms given by one or more ids. It is
@@ -491,8 +474,11 @@ class Client(Buildin):
                 format a scope.
 
         Returns:
-            asyncio.Future (None):
-                Future which result will be set to `None` if successful.
+            asyncio.Future ([*ids]]):
+                Returns a Future which result will be set to a `list` with all
+                the room Ids from the request. If, and only if a given room Id
+                was not found in the collection, then the room Id at this
+                position in the list will be `None`.
         """
         if scope is None:
             scope = self._scope
@@ -532,20 +518,45 @@ class Client(Buildin):
             self._pool_idx += 1
             self._pool_idx %= len(self._pool)
 
-    def _on_event(self, pkg):
-        if pkg.tp == Proto.ON_NODE_STATUS and \
-                self._reconnect and \
-                pkg.data == 'SHUTTING_DOWN':
-            asyncio.ensure_future(self.reconnect(), loop=self._loop)
+    async def _on_room(self, room_id, pkg):
+        async with self._rooms_lock:
+            try:
+                room = self._rooms[room_id]
+            except KeyError:
+                logging.warn(
+                    f'Got an event (tp:{pkg.tp}) for room Id {room_id} but '
+                    f'the room is not known by the ThingsDB client')
+            else:
+                room._on_event(pkg)
 
-        for event_handler in self._event_handlers:
-            event_handler(pkg.tp, pkg.data)
+    def _on_event(self, pkg):
+        if pkg.tp == Proto.ON_NODE_STATUS:
+            status, node_id = pkg.data['status'], pkg.data['id']
+
+            if self._reconnect and status == 'SHUTTING_DOWN':
+                asyncio.ensure_future(self.reconnect(), loop=self._loop)
+
+            logging.debug(
+                f'Node with Id {node_id} has changed its status to: {status}')
+            return
+
+        try:
+            room_id = pkg.data['id']
+        except KeyError:
+            if pkg.tp == Proto.ON_WARN:
+                warn = pkg.data
+                logging.warn(
+                    f'Warning from ThingsDB: '
+                    f'{warn["warn_msg"]} ({warn["warn_code"]})')
+            else:
+                logging.warn(f'Unexpected event: tp:{pkg.tp} data:{pkg.data}')
+        else:
+            asyncio.ensure_future(self._on_room(room_id, pkg), loop=self._loop)
 
     def _on_connection_lost(self, protocol, exc):
         if self._protocol is not protocol:
             return
         self._protocol = None
-
         if self._reconnect:
             asyncio.ensure_future(self.reconnect(), loop=self._loop)
 
@@ -559,11 +570,12 @@ class Client(Buildin):
                 await self._connect(timeout=timeout)
                 await self._ping(timeout=2)
                 await self._authenticate(timeout=5)
+                await self._rejoin()
             except Exception as e:
                 logging.error(
-                    f'connecting to {host}:{port} failed: '
+                    f'Connecting to {host}:{port} failed: '
                     f'{e}({e.__class__.__name__}), '
-                    f'try next connect in {wait_time} seconds'
+                    f'Try next connect in {wait_time} seconds'
                 )
             else:
                 if protocol and protocol.transport:
@@ -581,3 +593,30 @@ class Client(Buildin):
 
     def _authenticate(self, timeout):
         return self._write(Proto.REQ_AUTH, data=self._auth, timeout=timeout)
+
+    async def _rejoin(self):
+        if not self._rooms:
+            return  # do nothig if no rooms are used
+
+        # re-arrange the rooms per scope to combine joins in a less requests
+        scopes = defaultdict(list)
+        for room in self._rooms.values():
+            if room.id:
+                scopes[room.scope].append(room.id)
+
+        # join request per scope, each for one or more rooms
+        await asyncio.gather(*[
+            self._join(*ids, scope=scope)
+            for scope, ids in scopes.items()])
+
+        # # flatten the list with ids
+        # for id in (id for scoped in res for id in scoped if id is not None):
+        #     try:
+        #         room = self._rooms[id]
+        #     except KeyError:
+        #         pass  # unlikely, buta room might be removed
+        #     else:
+        #         try:
+        #             room.on_join()
+        #         except Exception:
+        #             logging.exception('')

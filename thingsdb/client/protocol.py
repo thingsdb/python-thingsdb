@@ -160,7 +160,7 @@ class Protocol(asyncio.Protocol):
         '''
         if self._requests:
             logging.error(
-                f'canceling {len(self._requests)} requests '
+                f'Canceling {len(self._requests)} requests '
                 'due to a lost connection'
             )
             while self._requests:
@@ -190,10 +190,8 @@ class Protocol(asyncio.Protocol):
                 return None
             try:
                 self.package.extract_data_from(self._buffered_data)
-            except KeyError as e:
-                logging.error(f'unsupported package received: {e}')
-            except Exception as e:
-                logging.exception(e)
+            except Exception:
+                logging.exception('')
                 # empty the byte-array to recover from this error
                 self._buffered_data.clear()
             else:
@@ -203,10 +201,10 @@ class Protocol(asyncio.Protocol):
                 elif tp in _PROTO_EVENTS:
                     try:
                         self._on_event(self.package)
-                    except Exception as e:
-                        logging.exception(e)
+                    except Exception:
+                        logging.exception('')
                 else:
-                    logging.error(f'unsupported package type received: {tp}')
+                    logging.error(f'Unsupported package type received: {tp}')
 
             self.package = None
 
@@ -250,18 +248,18 @@ class Protocol(asyncio.Protocol):
         try:
             future, task = self._requests.pop(pid)
         except KeyError:
-            logging.error('timed out package id not found: {}'.format(
+            logging.error('Timed out package Id not found: {}'.format(
                     self._data_package.pid))
             return None
 
         future.set_exception(TimeoutError(
-            'request timed out on package id {}'.format(pid)))
+            'request timed out on package Id {}'.format(pid)))
 
     def _on_response(self, pkg: Package) -> None:
         try:
             future, task = self._requests.pop(pkg.pid)
         except KeyError:
-            logging.error('received package id not found: {}'.format(pkg.pid))
+            logging.error('Received package id not found: {}'.format(pkg.pid))
             return None
 
         # cancel the timeout task

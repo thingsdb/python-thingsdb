@@ -9,23 +9,19 @@
   * [Client module](#client-module)
     * [Client()](#Client)
     * [authenticate](#authenticate)
-    * [add_event_handler](#add_event_handler)
     * [close](#close)
     * [connect](#connect)
     * [connect_pool](#connect_pool)
     * [get_default_scope](#get_default_scope)
     * [get_event_loop](#get_event_loop)
+    * [get_rooms](#get_rooms)
     * [is_connected](#is_connected)
     * [query](#query)
     * [reconnect](#reconnect)
     * [run](#run)
     * [set_default_scope](#set_default_scope)
-    * [unwatch](#unwatch)
     * [wait_closed](#wait_closed)
-    * [watch](#watch)
-  * [Model](#model)
-    * [Collection](#collection)
-    * [Thing](#thing)
+  * [Room](#room)
 
 ---------------------------------------
 
@@ -133,21 +129,6 @@ Authenticate a ThingsDB connection.
     client to wait for response on the authentication request.
     The timeout may be set to `None` in which case the client will
     wait forever on a response. Defaults to 5.
-
-### add_event_handler
-
-```python
-Client().add_event_handler(event_handler: Events) -> None
-```
-
-Add an event handler.
-
-Event handlers will called in the order they are added.
-
-#### Args
-
-- *event_handler (Events)*:
-    An instance of Events (see `thingsdb.client.abc.events`).
 
 ### close
 
@@ -272,6 +253,18 @@ Can be used to get the event loop.
 
 The event loop used by the client.
 
+### get_rooms
+
+```python
+Client().get_rooms() -> tuple
+```
+
+Can be used to get the rooms which are joined by this client.
+
+#### Returns
+
+A `tuple` with unique `Room` instances.
+
 ### is_connected
 
 ```python
@@ -290,7 +283,6 @@ Client().query(
         code: str,
         scope: Optional[str] = None,
         timeout: Optional[int] = None,
-        convert_vars: bool = True,
         **kwargs: Any
 ) -> asyncio.Future
 ```
@@ -311,13 +303,6 @@ Use this method to run `code` in a scope.
     Raise a time-out exception if no response is received within X
     seconds. If no time-out is given, the client will wait forever.
     Defaults to `None`.
-- *convert_vars (bool, optional)*:
-    Only applicable if `**kwargs` are given. If set to `True`, then
-    the provided `**kwargs` values will be converted so ThingsDB can
-    understand them. For example, a thing should be given just by
-    it's ID and with conversion the `#` will be extracted. When
-    this argument is `False`, the `**kwargs` stay untouched.
-    Defaults to `True`.
 - *\*\*kwargs (any, optional)*:
     Can be used to inject variable into the ThingsDB code.
 
@@ -364,7 +349,6 @@ Client().run(
     *args: Optional[Any],
     scope: Optional[str] = None,
     timeout: Optional[int] = None,
-    convert_args: bool = True,
     **kwargs: Any
 ) -> asyncio.Future
 ```
@@ -390,13 +374,6 @@ Use this method to run a stored procedure in a scope.
     Raise a time-out exception if no response is received within X
     seconds. If no time-out is given, the client will wait forever.
     Defaults to `None`.
-- *convert_args (bool, optional)*:
-    Only applicable if `*args` are given. If set to `True`, then
-    the provided `*args` values will be converted so ThingsDB can
-    understand them. For example, a thing should be given just by
-    it's ID and with conversion the `#` will be extracted. When
-    this argument is `False`, the `*args` stay untouched.
-    Defaults to `True`.
 - *\*\*kwargs (any, optional)*:
      Arguments which are injected as the procedure arguments.
     Instead of by name, the arguments may also be parsed using
@@ -429,37 +406,6 @@ Can be used to change the default scope which is initially set to `@t`.
     Set the default scope. A scope may start with either the `/`
     character, or `@`. Examples: `"//stuff"`, `"@:stuff"`, `"/node"`
 
-### unwatch
-
-```python
-Client().unwatch(
-    *ids: int,
-    scope: Optional[str] = None
-) -> asyncio.Future
-```
-
-Unsubscribe for changes on given things.
-
-Stop receiving events for the things given by one or more ids. It is
-possible that the client receives an event shortly after calling the
-unsubscribe method because the event was queued.
-
-#### Args
-- *\*ids (int)*:
-    Thing IDs to unsubscribe. No error is returned in case one of
-    the given things are not found within the collection or if the
-    thing was not being watched.
-- *scope (str, optional)*:
-    Unsubscribe for things in this scope. If not specified, the
-    default scope will be used. Only collection scopes may contain
-    things so only collection scopes can be used.
-    See https://docs.thingsdb.net/v0/overview/scopes/ for how to
-    format a scope.
-
-#### Returns
-
-Future which result will be set to `None` if successful.
-
 
 ### wait_closed
 
@@ -473,193 +419,6 @@ Can be used after calling the `close()` method to determine when the
 connection is actually closed.
 
 
-### watch
-
-```python
-Client().watch(self, *ids: int, scope: Optional[str] = None) -> asyncio.Future
-```
-
-Subscribe for changes on given things.
-
-This method accepts one or more thing ids to subscribe to. This
-method will simply return None as soon as the subscribe request is
-successful handled by ThingsDB. After the response, the client will
-receive `INIT` events for all subscribed ids. After that, ThingsDB
-will continue to provide the client with `UPDATE` events which contain
-changes to the subscribed thing. A `DELETE` event might be received
-if, and only if the thing is removed and garbage collected from the
-collection.
-
-#### Args
-
-- *\*ids (int)*:
-    Thing IDs to subscribe to. No error is returned in case one of
-    the given things are not found within the collection, instead a
-    `WARN` event will be send to the client.
-- *scope (str, optional)*:
-    Subscribe on things in this scope. If not specified, the
-    default scope will be used. Only collection scopes may contain
-    things so only collection scopes can be used.
-    See https://docs.thingsdb.net/v0/overview/scopes/ for how to
-    format a scope.
-
-#### Returns
-
-Future which result will be set to `None` if successful.
-
-## Model
-
-It is possible to create a model which will map to data in ThingsDB.
-The model will be kept up-to-date be the client. It is possible to break
-anywhere you want in the model. What is not provided, will not be watched.
-
-### Collection
-
-A collection is always required, even you do not plan to watch anything in the
-root of the collection. In the latter case you can just create an empty
-collection which can be used when initializing individual things.
-
-```python
-import asyncio
-from thingsdb.client import Client
-from thingsdb.model import Collection
-
-class Foo(Collection):
-    name = 'str'
-```
-
-In the example above, the ThingsDB collection name must be equal to the Python Class name, `Foo` in this case.
-It may be useful to use a different Python Class name than the ThingsDB collection
-name. This can be achieved by initializing the collection with a name attribute, for example `foo = Foo(name='foo')`.
-As an alternative, the magic attribute `__COLLECTION_NAME__` can be used , for example:
-
-```python
-class Stuff(Collection):
-    # the ThingsDB collection name is `stuff`, all lower case characters
-    __COLLECTION_NAME__ = 'stuff'
-```
-
-If both a `name` argument and the magic attribute `__COLLECTION_NAME__` are used, the `name` argument wins.
+## Room
 
 
-### Thing
-
-```python
-import asyncio
-from thingsdb.client import Client
-from thingsdb.model import Collection, Thing
-
-class Bar(Thing):
-    name = 'str'
-    other = 'Bar?', lambda: Bar
-
-class Foo(Collection):
-    bar = 'Bar', Bar
-
-async def example():
-    client = Client()
-    foo = Foo()
-    await client.connect('localhost')
-    try:
-        await client.authenticate('admin', 'pass')
-        await foo.load(client)
-
-        # ... now the collection will be watched
-
-    finally:
-        client.close()
-        await client.wait_closed()
-```
-
-Suppose you have an ID and want to watch that single thing, then
-you can initialize the thing and call `watch()` manually. For example,
-consider we have an `#5` for a `Bar` type in collection `Foo`:
-
-```python
-bar = Bar(foo, 5)
-await bar.watch()
-```
-
-### Enum
-
-The Python ThingsDB model has it's own Enum implementation which should not
-be confused with the default Python Enum class.
-
-```python
-import asyncio
-from thingsdb.client import Client
-from thingsdb.model import Collection, Thing, Enum
-
-
-class Color(Enum):
-    RED = "#f00"
-    BLUE = "#0f0"
-    GREEN = "#00f"
-
-
-class Brick(Thing):
-    color = 'Color', Color
-
-    def on_init(self, *args, **kwars):
-        super().on_init(*args, **kwars)
-        print(f'''
-        Init Brick:
-            id: {self.id()}
-            color name: {self.color.name}
-            color value: {self.color.value}
-        ''')
-
-class Lego(Collection):
-    bricks = '[Brick]', Brick
-
-
-async def example():
-    client = Client()
-    lego = Lego()
-    await client.connect('localhost')
-    try:
-        await client.authenticate('admin', 'pass')
-        try:
-            await lego.build(
-                client,
-                scripts=['.bricks = [];'],
-                delete_if_exists=False)
-        except KeyError:
-            pass
-        await lego.load(client)
-
-        # ... now the collection will be watched for 100 seconds
-        await asyncio.sleep(100)
-
-    finally:
-        client.close()
-        await client.wait_closed()
-
-if __name__ == '__main__':
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(example())
-```
-
-When adding a new brick, for example using the following code:
-
-```
-.bricks.push(Brick{
-    color: Color{RED}
-});
-```
-
-...then the `on_init` function will be called, printing the following output: *(the id might be different since this is auto-generated)*
-
-```text
-        Init Brick:
-            id: 123
-            color name: RED
-            color value: #f00
-```
-
-If you do not care about the whole `Color` class, then you can just create an empty class like this:
-
-```python
-class Color(Enum):
-    pass
-```
