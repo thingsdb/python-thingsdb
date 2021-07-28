@@ -49,6 +49,11 @@ class RoomBase(abc.ABC):
         return self._id if isinstance(self._id, int) else None
 
     async def join(self, client: Client):
+        # Although ThingsDB guarantees to return the response on the join
+        # request before the "on_join" event is being transmitted, the asyncio
+        # library might still process the "on_join" data before the result is
+        # set on the future. Therefore we require a lock to ensure the room
+        # is created inside the dict *before* the on_join is called.
         async with client._rooms_lock:
             if self._scope is None:
                 self._scope = client.get_default_scope()

@@ -22,7 +22,7 @@ class Room(RoomBase):
         """On init
         Called when a room is joined. This method will be called only once,
         thus *not* after a re-connect like the `on_join(..)` method. This
-        method is called *before* the `on_join(..)` method.
+        method is guaranteed to be called *before* the `on_join(..)` method.
         """
         pass
 
@@ -35,7 +35,8 @@ class Room(RoomBase):
 
     def on_leave(self) -> None:
         """On leave
-        Called when a room has been left.
+        Called after a leave room request. This event is *not* triggerd
+        by ThingsDB when a client disconnects or when a node is shutting down.
         """
         pass
 
