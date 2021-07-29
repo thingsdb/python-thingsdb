@@ -97,7 +97,7 @@ class RoomBase(abc.ABC):
         self._client._leave(self._id, scope=self._scope)
 
     def _on_event(self, pkg):
-        self.__class__._EVENT_MAP[pkg.tp](self, pkg.data)
+        self.__class__._ROOM_EVENT_MAP[pkg.tp](self, pkg.data)
 
     @abc.abstractmethod
     def on_init(self) -> None:
@@ -118,18 +118,19 @@ class RoomBase(abc.ABC):
             pass
         func()
 
-    def _call_event_handler(self, data):
+    def _emit_handler(self, data):
         cls = self.__class__
+        event = data['event']
         try:
-            fun = cls._event_handlers[data['event']]
+            fun = cls._event_handlers[event]
         except KeyError:
             logging.debug(
-                f"No handler found for `{data['event']}` on {cls.__name__}")
+                f"No emit handler found for `{event}` on {cls.__name__}")
         else:
             fun(self, *data['args'])
 
-    _EVENT_MAP = {
-        Proto.ON_ROOM_EVENT: _call_event_handler,
+    _ROOM_EVENT_MAP = {
+        Proto.ON_ROOM_EMIT: _emit_handler,
         Proto.ON_ROOM_JOIN: lambda s, _: s.on_join(),
         Proto.ON_ROOM_LEAVE: lambda s, _: s._on_stop(s.on_leave),
         Proto.ON_ROOM_DELETE: lambda s, _: s._on_stop(s.on_delete),

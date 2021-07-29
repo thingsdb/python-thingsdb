@@ -35,7 +35,7 @@ class Proto(enum.IntEnum):
     ON_WARN = 0x05
     ON_ROOM_JOIN = 0x06
     ON_ROOM_LEAVE = 0x07
-    ON_ROOM_EVENT = 0x08
+    ON_ROOM_EMIT = 0x08
     ON_ROOM_DELETE = 0x09
 
     # Responses
@@ -120,7 +120,7 @@ _PROTO_EVENTS = (
     Proto.ON_WARN,
     Proto.ON_ROOM_JOIN,
     Proto.ON_ROOM_LEAVE,
-    Proto.ON_ROOM_EVENT,
+    Proto.ON_ROOM_EMIT,
     Proto.ON_ROOM_DELETE,
 )
 
