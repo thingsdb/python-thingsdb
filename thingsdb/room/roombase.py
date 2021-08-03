@@ -2,7 +2,7 @@ import abc
 import asyncio
 import logging
 import functools
-from typing import Union
+from typing import Union, Optional
 from ..client import Client
 from ..client.protocol import Proto
 
@@ -36,6 +36,7 @@ class RoomBase(abc.ABC):
         self._client = None
         self._id = room
         self._scope = scope
+        self._wait_join = None
 
     @property
     def scope(self):
@@ -49,7 +50,17 @@ class RoomBase(abc.ABC):
     def client(self):
         return self._client
 
-    async def join(self, client: Client):
+    async def join(self, client: Client, wait: Optional[float] = 60):
+        """Join a room.
+
+        Args:
+            client (thingsdb.client.Client):
+                ThingsDB client instance.
+            wait (float):
+                Max time (in seconds) to wait for the first `on_join` call.
+                If wait is set to None, the join method will not wait for
+                the first `on_join` call to happen.
+        """
         # Although ThingsDB guarantees to return the response on the join
         # request before the "on_join" event is being transmitted, the asyncio
         # library might still process the "on_join" data before the result is
@@ -89,6 +100,12 @@ class RoomBase(abc.ABC):
 
             client._rooms[self._id] = self
             self.on_init()
+            if wait is not None:
+                self._wait_join = asyncio.Future()
+
+        if wait is not None:
+            # wait for the first join to finish
+            await asyncio.wait_for(self._wait_join, wait)
 
     async def leave(self):
         if not isinstance(self._id, int):
@@ -112,9 +129,16 @@ class RoomBase(abc.ABC):
     def on_leave(self) -> None:
         pass
 
+    async def _on_first_join(self):
+        await self.on_join()
+        self._wait_join.set_result(None)
+
     def _on_join(self, _data):
         loop = self.client.get_event_loop()
-        asyncio.ensure_future(self.on_join(), loop=loop)
+        if self._wait_join:
+            asyncio.ensure_future(self._on_first_join(), loop=loop)
+        else:
+            asyncio.ensure_future(self.on_join(), loop=loop)
 
     def _on_stop(self, func):
         try:

@@ -31,14 +31,18 @@ class Room(RoomBase):
         Called when a room is joined. Unlike the `on_init(..)` method,
         the `on_join(..)` method will be called again after a re-connect.
 
-        Note: this is an async method and usually the best method to perform
-              some thingsdb queries (if required).
+        This is an async method and usually the best method to perform
+        some ThingsDB queries (if required).
+
+        Unless the `wait` argument to the Room.join(..) function is explicitly
+        set to None, the first call to this method will finish before the
+        call the Room.join() is returned.
         """
         pass
 
     def on_leave(self) -> None:
         """On leave
-        Called after a leave room request. This event is *not* triggerd
+        Called after a leave room request. This event is *not* triggered
         by ThingsDB when a client disconnects or when a node is shutting down.
         """
         pass
