@@ -15,26 +15,23 @@ class RoomBase(abc.ABC):
         for key, val in cls.__dict__.items():
             if not key.startswith('__') and \
                     callable(val) and hasattr(val, '_event'):
-                if asyncio.iscoroutinefunction(val):
-                    val = functools.partial(asyncio.ensure_future, val)
                 cls._event_handlers[val._event] = val
 
     def __init__(
             self,
             room: Union[int, str],
             scope: str = None):
-        """Initializes an emitter.
+        """Initializes a room.
 
         Args:
-            client (thingsdb.client.Client):
-                ThingsDB Client instance.
             room (int/str):
                 The room Id or ThingsDB code which returns the Id of the room.
                 Examples are:
                    - 123
                    - '.my_room.id();'
             scope (str):
-                Collection scope. Defaults to the scope of the client.
+                Collection scope. If no scope is given, the scope will later
+                be set to the default client scope once the room is joined.
         """
         self._client = None
         self._id = room
@@ -47,6 +44,10 @@ class RoomBase(abc.ABC):
     @property
     def id(self):
         return self._id if isinstance(self._id, int) else None
+
+    @property
+    def client(self):
+        return self._client
 
     async def join(self, client: Client):
         # Although ThingsDB guarantees to return the response on the join
@@ -104,12 +105,16 @@ class RoomBase(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def on_join(self) -> None:
+    async def on_join(self) -> None:
         pass
 
     @abc.abstractmethod
     def on_leave(self) -> None:
         pass
+
+    def _on_join(self, _data):
+        loop = self.client.get_event_loop()
+        asyncio.ensure_future(self.on_join(), loop=loop)
 
     def _on_stop(self, func):
         try:
@@ -131,7 +136,7 @@ class RoomBase(abc.ABC):
 
     _ROOM_EVENT_MAP = {
         Proto.ON_ROOM_EMIT: _emit_handler,
-        Proto.ON_ROOM_JOIN: lambda s, _: s.on_join(),
+        Proto.ON_ROOM_JOIN: _on_join,
         Proto.ON_ROOM_LEAVE: lambda s, _: s._on_stop(s.on_leave),
         Proto.ON_ROOM_DELETE: lambda s, _: s._on_stop(s.on_delete),
     }

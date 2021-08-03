@@ -26,10 +26,13 @@ class Room(RoomBase):
         """
         pass
 
-    def on_join(self) -> None:
+    async def on_join(self) -> None:
         """On join
         Called when a room is joined. Unlike the `on_init(..)` method,
         the `on_join(..)` method will be called again after a re-connect.
+
+        Note: this is an async method and usually the best method to perform
+              some thingsdb queries (if required).
         """
         pass
 
