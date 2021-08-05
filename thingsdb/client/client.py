@@ -608,15 +608,3 @@ class Client(Buildin):
         await asyncio.gather(*[
             self._join(*ids, scope=scope)
             for scope, ids in scopes.items()])
-
-        # # flatten the list with ids
-        # for id in (id for scoped in res for id in scoped if id is not None):
-        #     try:
-        #         room = self._rooms[id]
-        #     except KeyError:
-        #         pass  # unlikely, buta room might be removed
-        #     else:
-        #         try:
-        #             room.on_join()
-        #         except Exception:
-        #             logging.exception('')

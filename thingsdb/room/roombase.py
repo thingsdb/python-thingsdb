@@ -39,12 +39,12 @@ class RoomBase(abc.ABC):
         self._wait_join = None
 
     @property
-    def scope(self):
-        return self._scope
-
-    @property
     def id(self):
         return self._id if isinstance(self._id, int) else None
+
+    @property
+    def scope(self):
+        return self._scope
 
     @property
     def client(self):
