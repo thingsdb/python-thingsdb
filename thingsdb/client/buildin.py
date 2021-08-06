@@ -128,7 +128,7 @@ class Buildin:
         Therefore scope @node will apply to all nodes in ThingsDB.
 
         The following pre-defined masks are available:
-        (from thingsdb import Access)
+        (from thingsdb.util import Access)
 
         Mask	          | Description
         ----------------- | ------------
