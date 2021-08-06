@@ -178,7 +178,7 @@ class Buildin:
         return await self.query(
             'del_backup(id, delete_files)',
             id=backup_id,
-            delete_files=delete_files
+            delete_files=delete_files,
             scope=scope)
 
     async def has_backup(self, backup_id: int, scope='@n'):
