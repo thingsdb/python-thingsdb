@@ -107,12 +107,21 @@ class RoomBase(abc.ABC):
             # wait for the first join to finish
             await asyncio.wait_for(self._wait_join, wait)
 
-    async def leave(self):
+    async def leave(self) -> asyncio.Future:
+        """Leave a room.
+
+        Note: If the room is not found, a LookupError will be raised.
+        """
         if not isinstance(self._id, int):
             raise TypeError(
                 'room Id is not an integer; most likely `join()` has never '
                 'been called')
-        self._client._leave(self._id, scope=self._scope)
+        res = await self._client._leave(self._id, scope=self._scope)
+        if res[0] is None:
+            raise LookupError(f'room Id {self._id} is not found (anymore)')
+
+    def emit(self, event: str, *args) -> asyncio.Future:
+        return self._client.emit(self._id, event, *args, scope=self._scope)
 
     def _on_event(self, pkg):
         self.__class__._ROOM_EVENT_MAP[pkg.tp](self, pkg.data)

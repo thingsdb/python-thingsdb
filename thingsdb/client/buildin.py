@@ -127,3 +127,13 @@ class Buildin:
 
     async def users_info(self) -> list:
         return await self.query('users_info()', scope='@t')
+
+    async def time_zones_info(self) -> list:
+        return await self.query('time_zones_info()', scope='@t')
+
+    async def set_time_zone(self, collection: U[int, str], zone: str):
+        return await self.query(
+            f'set_time_zone(collection, zone)',
+            collection=collection,
+            zone=zone,
+            scope='@t')

@@ -426,6 +426,41 @@ class Client(Buildin):
 
         return self._write_pkg(Proto.REQ_RUN, data, timeout=timeout)
 
+    def emit(
+            self,
+            room_id: int,
+            event: str,
+            *args,
+            scope: Optional[str] = None,
+    ) -> asyncio.Future:
+        """Emit an event.
+
+        This function is most likely called from a Room instance but may be
+        used directly.
+
+        Args:
+            room_id (int):
+                Room Id to emit the event to.
+            event (str):
+                Name of the event to emit.
+            *args:
+                Additional argument to send with the event.
+            scope (str, optional):
+                Find the room in this scope. If not specified, the
+                default scope will be used. Only collection scopes may contain
+                rooms so only collection scopes can be used.
+                See https://docs.thingsdb.net/v0/overview/scopes/ for how to
+                format a scope.
+
+        Returns:
+            asyncio.Future (None):
+                Future which should be awaited. The result of the future will
+                be set to `None` when successful.
+        """
+        if scope is None:
+            scope = self._scope
+        return self._write_pkg(Proto.REQ_EMIT, [scope, room_id, event, *args])
+
     def _join(self, *ids: int, scope: Optional[str] = None) -> asyncio.Future:
         """Join one or more rooms.
 
