@@ -13,7 +13,7 @@ from ..exceptions import NodeError, AuthError
 
 class Client(Buildin):
 
-    MAX_RECONNECT_WAIT_TIME = 120
+    MAX_RECONNECT_WAIT_TIME = 60
     MAX_RECONNECT_TIMEOUT = 10
 
     def __init__(
