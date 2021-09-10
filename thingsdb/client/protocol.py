@@ -32,11 +32,11 @@ from ..exceptions import ZeroDivisionError
 class Proto(enum.IntEnum):
     # Events
     ON_NODE_STATUS = 0x00
-    ON_WATCH_INI = 0x01
-    ON_WATCH_UPD = 0x02
-    ON_WATCH_DEL = 0x03
-    ON_WATCH_STOP = 0x04
     ON_WARN = 0x05
+    ON_ROOM_JOIN = 0x06
+    ON_ROOM_LEAVE = 0x07
+    ON_ROOM_EMIT = 0x08
+    ON_ROOM_DELETE = 0x09
 
     # Responses
     RES_PING = 0x10
@@ -48,9 +48,10 @@ class Proto(enum.IntEnum):
     REQ_PING = 0x20
     REQ_AUTH = 0x21
     REQ_QUERY = 0x22
-    REQ_WATCH = 0x23
-    REQ_UNWATCH = 0x24
     REQ_RUN = 0x25
+    REQ_JOIN = 0x26
+    REQ_LEAVE = 0x27
+    REQ_EMIT = 0x28
 
 
 class Err(enum.IntEnum):
@@ -117,11 +118,11 @@ _PROTO_RESPONSE_MAP = {
 
 _PROTO_EVENTS = (
     Proto.ON_NODE_STATUS,
-    Proto.ON_WATCH_INI,
-    Proto.ON_WATCH_UPD,
-    Proto.ON_WATCH_DEL,
-    Proto.ON_WATCH_STOP,
-    Proto.ON_WARN
+    Proto.ON_WARN,
+    Proto.ON_ROOM_JOIN,
+    Proto.ON_ROOM_LEAVE,
+    Proto.ON_ROOM_EMIT,
+    Proto.ON_ROOM_DELETE,
 )
 
 
@@ -160,7 +161,7 @@ class Protocol(asyncio.Protocol):
         '''
         if self._requests:
             logging.error(
-                f'canceling {len(self._requests)} requests '
+                f'Canceling {len(self._requests)} requests '
                 'due to a lost connection'
             )
             while self._requests:
@@ -190,10 +191,8 @@ class Protocol(asyncio.Protocol):
                 return None
             try:
                 self.package.extract_data_from(self._buffered_data)
-            except KeyError as e:
-                logging.error(f'unsupported package received: {e}')
-            except Exception as e:
-                logging.exception(e)
+            except Exception:
+                logging.exception('')
                 # empty the byte-array to recover from this error
                 self._buffered_data.clear()
             else:
@@ -203,10 +202,10 @@ class Protocol(asyncio.Protocol):
                 elif tp in _PROTO_EVENTS:
                     try:
                         self._on_event(self.package)
-                    except Exception as e:
-                        logging.exception(e)
+                    except Exception:
+                        logging.exception('')
                 else:
-                    logging.error(f'unsupported package type received: {tp}')
+                    logging.error(f'Unsupported package type received: {tp}')
 
             self.package = None
 
@@ -250,18 +249,18 @@ class Protocol(asyncio.Protocol):
         try:
             future, task = self._requests.pop(pid)
         except KeyError:
-            logging.error('timed out package id not found: {}'.format(
+            logging.error('Timed out package Id not found: {}'.format(
                     self._data_package.pid))
             return None
 
         future.set_exception(TimeoutError(
-            'request timed out on package id {}'.format(pid)))
+            'request timed out on package Id {}'.format(pid)))
 
     def _on_response(self, pkg: Package) -> None:
         try:
             future, task = self._requests.pop(pkg.pid)
         except KeyError:
-            logging.error('received package id not found: {}'.format(pkg.pid))
+            logging.error('Received package id not found: {}'.format(pkg.pid))
             return None
 
         # cancel the timeout task
