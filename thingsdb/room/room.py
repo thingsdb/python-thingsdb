@@ -36,7 +36,7 @@ class Room(RoomBase):
 
         Unless the `wait` argument to the Room.join(..) function is explicitly
         set to None, the first call to this method will finish before the
-        call the Room.join() is returned.
+        call to Room.join() is returned.
         """
         pass
 

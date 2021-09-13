@@ -483,7 +483,7 @@ some ThingsDB queries (if required).
 
 Unless the `wait` argument to the Room.join(..) function is explicitly
 set to None, the first call to this method will finish before the
-call the Room.join() is returned.
+call to `Room.join()` is returned.
 
 ### on_leave(self) -> None:
 Called after a leave room request. This event is *not* triggered
