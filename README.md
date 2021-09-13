@@ -22,7 +22,11 @@
     * [set_default_scope](#set_default_scope)
     * [wait_closed](#wait_closed)
   * [Room](#room)
-
+    * [methods](#room-methods)
+    * [properties](#room-properties)
+    * [join](#join)
+    * [leave](#leave)
+    * [emit](#emit)
 ---------------------------------------
 
 ## Installation
@@ -421,4 +425,119 @@ connection is actually closed.
 
 ## Room
 
+Rooms can be implemented to listen for events from ThingsDB rooms.
+
+Se the example code:
+
+```python
+from thingsdb.room import Room, event
+
+class Chat(Room):
+
+    @event('msg')
+    def on_msg(self, msg):
+        print(msg)
+
+```
+
+This will listen for `msg` events on a ThingsDB room. To connect out class to a
+room, you have to initialize the class with a `roomId` of some ThingsDB code which
+returns the `roomId` as integer value. For example:
+
+```python
+# Create a chat instance. In this example we initialize our chat with some ThingsDB code
+chat = Chat("""//ti
+    // Create .chat room if the room does not exist.
+    try(.chat = room());
+
+    // return the roomId.
+    .chat.id();
+""")
+
+# Now we can join the room. (we assume that you have a ThingsDB client)
+await chat.join(client)
+```
+
+## Room Methods
+
+Besides implementing an `@event` handler, a room has also some methods which can be implemented to control or initialize a room.
+
+### on_init(self) -> None
+Called when a room is joined. This method will be called only once,
+thus *not* after a re-connect like the `on_join(..)` method. This
+method is guaranteed to be called *before* the `on_join(..)` method.
+
+### on_join(self) -> None:
+Called when a room is joined. Unlike the `on_init(..)` method,
+the `on_join(..)` method will be called again after a re-connect.
+
+This is an async method and usually the best method to perform
+some ThingsDB queries (if required).
+
+Unless the `wait` argument to the Room.join(..) function is explicitly
+set to None, the first call to this method will finish before the
+call the Room.join() is returned.
+
+### on_leave(self) -> None:
+Called after a leave room request. This event is *not* triggered
+by ThingsDB when a client disconnects or when a node is shutting down.
+
+### on_delete(self) -> None:
+Called when the room is removed from ThingsDB.
+
+## Room Properties
+
+The following properties are available on a room instance. Note that some properties
+might return `None` as long as a room is not joined.
+
+Property | Description
+-------- | -----------
+`id`     | Returns the roomId.
+`scope`  | Returns the scope of the room.
+`client` | Returns the associated client of the room.
+
+### join
+
+```python
+Room().join(client: Client, wait: Optional[float] = 60) -> None
+```
+
+Joins the room.
+
+#### Args
+- client *(thingsdb.client.Client)*:
+        ThingsDB client instance.
+- wait *(float)*:
+    Max time (in seconds) to wait for the first `on_join` call.
+    If wait is set to None, the join method will not wait for
+    the first `on_join` call to happen.
+
+
+### leave
+
+```python
+Room().leave() -> None
+```
+
+Leave the room. If the room is not found, a `LookupError` will be raised.
+
+### emit
+
+```python
+Room().emit(event: str, *args: Optional[Any],) -> asyncio.Future
+```
+
+Emit an event to a room.
+
+#### Args
+
+- *event (str)*:
+    Name of the event to emit.
+- *\*args (any)*:
+    Additional argument to send with the event.
+
+#### Returns
+
+Future which should be awaited. The result of the future will
+be set to `None` when successful.
 

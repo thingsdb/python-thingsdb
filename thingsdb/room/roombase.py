@@ -107,7 +107,7 @@ class RoomBase(abc.ABC):
             # wait for the first join to finish
             await asyncio.wait_for(self._wait_join, wait)
 
-    async def leave(self) -> asyncio.Future:
+    async def leave(self):
         """Leave a room.
 
         Note: If the room is not found, a LookupError will be raised.
@@ -121,7 +121,20 @@ class RoomBase(abc.ABC):
             raise LookupError(f'room Id {self._id} is not found (anymore)')
 
     def emit(self, event: str, *args) -> asyncio.Future:
-        return self._client.emit(self._id, event, *args, scope=self._scope)
+        """Emit an event.
+
+        Args:
+            event (str):
+                Name of the event to emit.
+            *args:
+                Additional argument to send with the event.
+
+        Returns:
+            asyncio.Future (None):
+                Future which should be awaited. The result of the future will
+                be set to `None` when successful.
+        """
+        return self._client._emit(self._id, event, *args, scope=self._scope)
 
     def _on_event(self, pkg):
         self.__class__._ROOM_EVENT_MAP[pkg.tp](self, pkg.data)

@@ -426,17 +426,14 @@ class Client(Buildin):
 
         return self._write_pkg(Proto.REQ_RUN, data, timeout=timeout)
 
-    def emit(
+    def _emit(
             self,
             room_id: int,
             event: str,
-            *args,
+            *args: Optional[Any],
             scope: Optional[str] = None,
     ) -> asyncio.Future:
         """Emit an event.
-
-        This function is most likely called from a Room instance but may be
-        used directly.
 
         Args:
             room_id (int):
