@@ -435,6 +435,9 @@ class Client(Buildin):
     ) -> asyncio.Future:
         """Emit an event.
 
+        Use Room(room_id, scope=scope).emit(..) instead of this function to
+        emit an event to a roomId.
+
         Args:
             room_id (int):
                 Room Id to emit the event to.

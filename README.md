@@ -1,4 +1,4 @@
-# Python connector and ORM for ThingsDB
+# Python connector for ThingsDB
 
 > This library requires Python 3.6 or higher.
 
@@ -6,8 +6,7 @@
 
   * [Installation](#installation)
   * [Quick usage](#quick-usage)
-  * [Client module](#client-module)
-    * [Client()](#Client)
+  * [Client](#client)
     * [authenticate](#authenticate)
     * [close](#close)
     * [connect](#connect)
@@ -74,13 +73,11 @@ async def hello_world():
 asyncio.get_event_loop().run_until_complete(hello_world())
 ```
 
-## Client module
+## Client
 
 This is an client using `asyncio` which can be used for running queries to
 ThingsDB.
 
-
-### Client()
 
 ```python
 thingsdb.client.Client(
@@ -454,9 +451,19 @@ chat = Chat("""//ti
     .chat.id();
 """)
 
+
 # Now we can join the room. (we assume that you have a ThingsDB client)
 await chat.join(client)
 ```
+
+#### Room Init Args
+- *room (int/str)*:
+    The room Id or ThingsDB code which returns the Id of the room.
+    Examples are `123`, `'.my_room.id();'`
+- *scope (str)*:
+    Collection scope. If no scope is given, the scope will later
+    be set to the default client scope once the room is joined.
+
 
 ## Room Methods
 
