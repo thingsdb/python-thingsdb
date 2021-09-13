@@ -13,10 +13,8 @@ try:
         long_description = f.read()
 except IOError:
     long_description = '''
-The ThingsDB connector can be used to communicate with ThingsDB.
-
-Besides a connector it also contains an ORM layer which can be used for
-creating models and subscribing to things within a collection.
+The ThingsDB connector can be used to communicate with ThingsDB with support
+for joining rooms to listens for events.
 '''.strip()
 
 setup(
@@ -53,7 +51,7 @@ setup(
         'msgpack',
         'deprecation'
     ],
-    keywords='database connector orm',
+    keywords='database connector',
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
