@@ -1,3 +1,6 @@
+![CI](https://github.com/thingsdb/python-thingsdb/workflows/CI/badge.svg)
+[![Release Version](https://img.shields.io/github/release/thingsdb/python-thingsdb)](https://github.com/thingsdb/python-thingsdb/releases)
+
 # Python connector for ThingsDB
 
 > This library requires Python 3.6 or higher.
