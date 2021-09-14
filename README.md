@@ -445,12 +445,11 @@ returns the `roomId` as integer value. For example:
 # Create a chat instance. In this example we initialize our chat with some ThingsDB code
 chat = Chat("""//ti
     // Create .chat room if the room does not exist.
-    try(.chat = room());
+    .has('chat') || .chat = room();
 
     // return the roomId.
     .chat.id();
 """)
-
 
 # Now we can join the room. (we assume that you have a ThingsDB client)
 await chat.join(client)
