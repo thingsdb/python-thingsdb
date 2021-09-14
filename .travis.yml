@@ -1,0 +1,9 @@
+language: python
+python:
+  - "3.6"
+  - "3.9"
+before_install:
+  - pip install pytest pycodestyle
+script:
+  - pytest -v
+  - find . -name \*.py -exec pycodestyle {} +
