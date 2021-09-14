@@ -1,4 +1,4 @@
-![CI](https://github.com/thingsdb/python-thingsdb/workflows/CI/badge.svg)
+[![CI Status](https://github.com/thingsdb/python-thingsdb/workflows/CI/badge.svg)](https://github.com/thingsdb/python-thingsdb/actions)
 [![Release Version](https://img.shields.io/github/release/thingsdb/python-thingsdb)](https://github.com/thingsdb/python-thingsdb/releases)
 
 # Python connector for ThingsDB
