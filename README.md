@@ -558,14 +558,14 @@ be set to `None` when successful.
 set_package_fail_file(fn: str = '') -> None
 ```
 
-Configure a file name to store the last failed package.
+Configure a file name to dump the last failed package.
 
 Only the MessagePack data will be stored in this file, not the package
 header. This is useful for debugging packages which fail to unpack.
 Note that only a single fail file can be used which is active (or not) for
 all clients.
 
-When empty (`''`), a failed package will *not* be stored to file.
+When empty (`''`), a failed package will *not* be dumped to file.
 
 ```python
 from thingsdb.client import set_package_fail_file
