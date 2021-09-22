@@ -152,8 +152,17 @@ class RoomBase(abc.ABC):
         pass
 
     async def _on_first_join(self):
-        await self.on_join()
-        self._wait_join.set_result(None)
+        fut = self._wait_join
+        self._wait_join = None
+        # Instead of using finally to set the result, we could also catch the
+        # exception and choose to set the exception to the future. (And only
+        # set the future result to None on success). That implementation
+        # would result in getting an exception from the join() method when the
+        # wait argument is used.
+        try:
+            await self.on_join()
+        finally:
+            fut.set_result(None)
 
     def _on_join(self, _data):
         loop = self.client.get_event_loop()

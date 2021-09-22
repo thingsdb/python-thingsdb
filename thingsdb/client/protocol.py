@@ -194,6 +194,8 @@ class Protocol(asyncio.Protocol):
             except Exception:
                 logging.exception('')
                 # empty the byte-array to recover from this error
+                logging.error(
+                    f'Exception above came from package: {self.package}')
                 self._buffered_data.clear()
             else:
                 tp = self.package.tp
