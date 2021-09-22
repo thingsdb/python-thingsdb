@@ -1,5 +1,24 @@
 import struct
 import msgpack
+import logging
+from typing import Optional
+
+
+_fail_file = ''
+
+
+def set_package_fail_file(fn: Optional[str] = ''):
+    """Configure a file name to store the last failed package.
+
+    Only the MessagePack data will be stored in this file, not the package
+    header. This is useful for debugging packages which fail to unpack.
+    Note that only a single fail file can be used which is active (or not) for
+    all clients.
+
+    When empty, a failed package will not be stored to file.
+    """
+    global _fail_file
+    _fail_file = fn
 
 
 class Package(object):
@@ -20,6 +39,18 @@ class Package(object):
                 barray[self.__class__.st_package.size:self.total],
                 raw=False) \
                 if self.length else None
+        except Exception as e:
+            if _fail_file:
+                try:
+                    with open(_fail_file, 'wb') as f:
+                        f.write(
+                            barray[self.__class__.st_package.size:self.total])
+                except Exception:
+                    logging.exception('')
+                else:
+                    logging.warn(
+                        f'Wrote the content from {self} to `{_fail_file}`')
+            raise e
         finally:
             del barray[:self.total]
 

@@ -29,6 +29,7 @@
     * [join](#join)
     * [leave](#leave)
     * [emit](#emit)
+  * [Failed packages](#failed-packages)
 ---------------------------------------
 
 ## Installation
@@ -550,3 +551,27 @@ Emit an event to a room.
 Future which should be awaited. The result of the future will
 be set to `None` when successful.
 
+
+## Failed packages
+
+```python
+set_package_fail_file(fn: str = '') -> None
+```
+
+Configure a file name to store the last failed package.
+
+Only the MessagePack data will be stored in this file, not the package
+header. This is useful for debugging packages which fail to unpack.
+Note that only a single fail file can be used which is active (or not) for
+all clients.
+
+When empty (`''`), a failed package will *not* be stored to file.
+
+```python
+from thingsdb.client import set_package_fail_file
+
+set_package_fail_file('/tmp/thingsdb-invalid-data.mp')
+
+# When a package is received which fails to unpack, the data from this package
+# will be stored to file.
+```
