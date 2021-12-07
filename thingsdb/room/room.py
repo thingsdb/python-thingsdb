@@ -52,3 +52,10 @@ class Room(RoomBase):
         Called when the room is removed from ThingsDB.
         """
         pass
+
+    def on_emit(self, event, *args):
+        """On emit
+        Called when no event handler is configured for the event.
+        """
+        logging.debug(f"No emit handler found for `{event}`")
+        pass
