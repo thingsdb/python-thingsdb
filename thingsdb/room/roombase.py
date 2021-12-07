@@ -151,6 +151,10 @@ class RoomBase(abc.ABC):
     def on_leave(self) -> None:
         pass
 
+    @abc.abstractmethod
+    def on_emit(self, event: str, *args) -> None:
+        pass
+
     async def _on_first_join(self):
         fut = self._wait_join
         self._wait_join = None
@@ -184,8 +188,7 @@ class RoomBase(abc.ABC):
         try:
             fun = cls._event_handlers[event]
         except KeyError:
-            logging.debug(
-                f"No emit handler found for `{event}` on {cls.__name__}")
+            self.on_emit(event, *data['args'])
         else:
             fun(self, *data['args'])
 

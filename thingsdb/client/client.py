@@ -9,6 +9,7 @@ from concurrent.futures import CancelledError
 from .buildin import Buildin
 from .protocol import Proto, Protocol
 from ..exceptions import NodeError, AuthError
+from ..util import strip_code
 
 
 class Client(Buildin):
@@ -324,7 +325,7 @@ class Client(Buildin):
         if scope is None:
             scope = self._scope
 
-        code = code.strip()  # strip white space characters
+        code = strip_code(code)
         data = [scope, code]
         if kwargs:
             data.append(kwargs)
@@ -581,7 +582,7 @@ class Client(Buildin):
             if pkg.tp == Proto.ON_WARN:
                 warn = pkg.data
                 logging.warn(
-                    f'Warning from ThingsDB: '
+                    f'ThingsDB: '
                     f'{warn["warn_msg"]} ({warn["warn_code"]})')
             else:
                 logging.warn(f'Unexpected event: tp:{pkg.tp} data:{pkg.data}')
