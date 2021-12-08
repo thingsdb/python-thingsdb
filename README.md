@@ -495,6 +495,11 @@ by ThingsDB when a client disconnects or when a node is shutting down.
 ### on_delete(self) -> None:
 Called when the room is removed from ThingsDB.
 
+### on_emit(self, event: str, *args) -> None:
+Called when no event handler is configured for the event.
+By default, the `on_emit` will display a "debug" log message when called to
+show that no handler for the event is found.
+
 ## Room Properties
 
 The following properties are available on a room instance. Note that some properties

@@ -53,7 +53,7 @@ class Room(RoomBase):
         """
         pass
 
-    def on_emit(self, event, *args):
+    def on_emit(self, event: str, *args):
         """On emit
         Called when no event handler is configured for the event.
         """
