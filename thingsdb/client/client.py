@@ -563,7 +563,9 @@ class Client(Buildin):
                     f'Got an event (tp:{pkg.tp}) for room Id {room_id} but '
                     f'the room is not known by the ThingsDB client')
             else:
-                room._on_event(pkg)
+                task = room._on_event(pkg)
+                if isinstance(task, asyncio.Task):
+                    await task
 
     def _on_event(self, pkg):
         if pkg.tp == Proto.ON_NODE_STATUS:

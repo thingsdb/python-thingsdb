@@ -36,7 +36,7 @@ class RoomBase(abc.ABC):
         self._client = None
         self._id = room
         self._scope = scope
-        self._wait_join = None
+        self._wait_join = False
 
     @property
     def id(self):
@@ -137,7 +137,7 @@ class RoomBase(abc.ABC):
         return self._client._emit(self._id, event, *args, scope=self._scope)
 
     def _on_event(self, pkg):
-        self.__class__._ROOM_EVENT_MAP[pkg.tp](self, pkg.data)
+        return self.__class__._ROOM_EVENT_MAP[pkg.tp](self, pkg.data)
 
     @abc.abstractmethod
     def on_init(self) -> None:
@@ -169,10 +169,19 @@ class RoomBase(abc.ABC):
             fut.set_result(None)
 
     def _on_join(self, _data):
-        loop = self.client.get_event_loop()
         if self._wait_join:
-            asyncio.ensure_future(self._on_first_join(), loop=loop)
+            # Future, the first join. Return a task so the room lock is kept
+            # until the on_first_join is finished
+            return asyncio.create_task(self._on_first_join())
+        elif self._wait_join is None:
+            # Initially a wait was set, do not handle (new) events until the
+            # join is (again) finished
+            return asyncio.create_task(self.on_join())
         else:
+            # User has decided not to wait for the join. Thus we can asume that
+            # event handlers do not depend on the on_join to be finished
+            assert self._wait_join is False
+            loop = self.client.get_event_loop()
             asyncio.ensure_future(self.on_join(), loop=loop)
 
     def _on_stop(self, func):
