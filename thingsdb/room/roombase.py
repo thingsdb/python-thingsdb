@@ -36,7 +36,7 @@ class RoomBase(abc.ABC):
         self._client = None
         self._id = room
         self._scope = scope
-        self._wait_join = None
+        self._wait_join = False
 
     @property
     def id(self):
@@ -50,7 +50,7 @@ class RoomBase(abc.ABC):
     def client(self):
         return self._client
 
-    async def join(self, client: Client, wait: Optional[float] = 60):
+    async def join(self, client: Client, wait: Optional[float] = 60.0):
         """Join a room.
 
         Args:
@@ -58,8 +58,8 @@ class RoomBase(abc.ABC):
                 ThingsDB client instance.
             wait (float):
                 Max time (in seconds) to wait for the first `on_join` call.
-                If wait is set to None, the join method will not wait for
-                the first `on_join` call to happen.
+                If wait is set to `0` or `None`, the join method will not
+                wait for the first `on_join` call to happen.
         """
         # Although ThingsDB guarantees to return the response on the join
         # request before the "on_join" event is being transmitted, the asyncio
@@ -100,10 +100,10 @@ class RoomBase(abc.ABC):
 
             client._rooms[self._id] = self
             self.on_init()
-            if wait is not None:
+            if wait:
                 self._wait_join = asyncio.Future()
 
-        if wait is not None:
+        if wait:
             # wait for the first join to finish
             await asyncio.wait_for(self._wait_join, wait)
 
@@ -136,8 +136,8 @@ class RoomBase(abc.ABC):
         """
         return self._client._emit(self._id, event, *args, scope=self._scope)
 
-    def _on_event(self, pkg):
-        self.__class__._ROOM_EVENT_MAP[pkg.tp](self, pkg.data)
+    def _on_event(self, pkg) -> Optional[asyncio.Task]:
+        return self.__class__._ROOM_EVENT_MAP[pkg.tp](self, pkg.data)
 
     @abc.abstractmethod
     def on_init(self) -> None:
@@ -169,10 +169,19 @@ class RoomBase(abc.ABC):
             fut.set_result(None)
 
     def _on_join(self, _data):
-        loop = self.client.get_event_loop()
         if self._wait_join:
-            asyncio.ensure_future(self._on_first_join(), loop=loop)
+            # Future, the first join. Return a task so the room lock is kept
+            # until the on_first_join is finished
+            return asyncio.create_task(self._on_first_join())
+        elif self._wait_join is None:
+            # Initially a wait was set, do not handle (new) events until the
+            # join is (again) finished
+            return asyncio.create_task(self.on_join())
         else:
+            # User has decided not to wait for the join. Thus we can asume that
+            # event handlers do not depend on the on_join to be finished
+            assert self._wait_join is False
+            loop = self.client.get_event_loop()
             asyncio.ensure_future(self.on_join(), loop=loop)
 
     def _on_stop(self, func):

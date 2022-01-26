@@ -485,7 +485,7 @@ This is an async method and usually the best method to perform
 some ThingsDB queries (if required).
 
 Unless the `wait` argument to the Room.join(..) function is explicitly
-set to None, the first call to this method will finish before the
+set to `0` or `None`, the first call to this method will finish before the
 call to `Room.join()` is returned.
 
 ### on_leave(self) -> None:
@@ -514,7 +514,7 @@ Property | Description
 ### join
 
 ```python
-Room().join(client: Client, wait: Optional[float] = 60) -> None
+Room().join(client: Client, wait: Optional[float] = 60.0) -> None
 ```
 
 Joins the room.
@@ -524,7 +524,7 @@ Joins the room.
         ThingsDB client instance.
 - wait *(float)*:
     Max time (in seconds) to wait for the first `on_join` call.
-    If wait is set to None, the join method will not wait for
+    If wait is set to `0` or `None`, the join method will not wait for
     the first `on_join` call to happen.
 
 
