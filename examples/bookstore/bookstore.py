@@ -50,7 +50,7 @@ class BookStore(Room):
         """)
 
     @event('add-book')
-    def on_add_boook(self, book):
+    def on_add_book(self, book):
         self.books.append(book)
 
 
