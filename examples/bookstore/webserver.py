@@ -3,10 +3,10 @@
 Make sure you start with an empty collection and configure your token and
 collection. (THINGSDB_AUTH_TOKEN and THINGSDB_COLLECTION)
 
-Start the `bookstore.py` multiple times on different ports, for example:
+Start the `webserver.py` multiple times on different ports, for example:
 
-python bookstore.py 5050
-python bookstore.py 5051
+python webserver.py 5050
+python webserver.py 5051
 
 Call the `add_book` handler on the one of the web servers (For example 5050)
 ```
