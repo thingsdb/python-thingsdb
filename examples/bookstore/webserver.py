@@ -50,7 +50,7 @@ class BookStore(Room):
         """)
 
     @event('add-book')
-    def on_add_boook(self, book):
+    def on_add_book(self, book):
         self.books.append(book)
 
 
@@ -66,7 +66,7 @@ async def add_book(request):
     return web.HTTPNoContent()
 
 
-# We hve the books in memory
+# We have the books in memory, no need for a query
 async def get_books(request):
     return web.json_response({
         "book_titles": [book['title'] for book in bookstore.books]
