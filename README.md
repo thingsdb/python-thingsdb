@@ -336,15 +336,16 @@ contain the result of the ThingsDB code when successful.
 ### reconnect
 
 ```python
-async Client().reconnect() -> None
+async Client().reconnect() -> Optional[Future]
 ```
 
 Re-connect to ThingsDB.
 
 This method can be used, even when a connection still exists. In case
 of a connection pool, a call to `reconnect()` will switch to another
-node.
-
+node. If the client is already re-connecting, this method returns `None`,
+otherwise, the reconnect `Future` is returned, await of the Future is
+possible but not required.
 
 ### run
 

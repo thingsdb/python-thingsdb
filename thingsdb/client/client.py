@@ -180,6 +180,7 @@ class Client(Buildin):
             connected. This can be checked with `client.is_connected()`.
         """
         assert self.is_connected() is False
+        assert self._reconnecting is False
         if len(auth) == 1:
             auth = auth[0]
 
@@ -229,21 +230,19 @@ class Client(Buildin):
         self._pool_idx = 0
         return self._connect(timeout=timeout)
 
-    async def reconnect(self) -> None:
+    def reconnect(self) -> Optional[asyncio.Future]:
         """Re-connect to ThingsDB.
 
         This method can be used, even when a connection still exists. In case
         of a connection pool, a call to `reconnect()` will switch to another
-        node.
+        node. If the client is already re-connecting, this method returns None,
+        otherwise, the reconnect Future is returned, await of the Future is
+        possible but not required.
         """
         if self._reconnecting:
             return
-
         self._reconnecting = True
-        try:
-            await self._reconnect_loop()
-        finally:
-            self._reconnecting = False
+        return asyncio.ensure_future(self._reconnect_loop(), loop=self._loop)
 
     async def wait_closed(self) -> None:
         """Wait for a connection to close.
@@ -342,6 +341,7 @@ class Client(Buildin):
         while True:
             if not self.is_connected():
                 logging.info('Wait for a connection')
+                self.reconnect()  # ensure the re-connect loop
                 await asyncio.sleep(1.0)
                 continue
 
@@ -572,7 +572,7 @@ class Client(Buildin):
             status, node_id = pkg.data['status'], pkg.data['id']
 
             if self._reconnect and status == 'SHUTTING_DOWN':
-                asyncio.ensure_future(self.reconnect(), loop=self._loop)
+                self.reconnect()
 
             logging.debug(
                 f'Node with Id {node_id} has changed its status to: {status}')
@@ -596,35 +596,38 @@ class Client(Buildin):
             return
         self._protocol = None
         if self._reconnect:
-            asyncio.ensure_future(self.reconnect(), loop=self._loop)
+            self.reconnect()
 
     async def _reconnect_loop(self):
-        wait_time = 1
-        timeout = 2
-        protocol = self._protocol
-        while True:
-            host, port = self._pool[self._pool_idx]
-            try:
-                await self._connect(timeout=timeout)
-                await self._ping(timeout=2)
-                await self._authenticate(timeout=5)
-                await self._rejoin()
-            except Exception as e:
-                logging.error(
-                    f'Connecting to {host}:{port} failed: '
-                    f'{e}({e.__class__.__name__}), '
-                    f'Try next connect in {wait_time} seconds'
-                )
-            else:
-                if protocol and protocol.transport:
-                    # make sure the `old` connection will be dropped
-                    self._loop.call_later(10.0, protocol.transport.close)
-                break
+        try:
+            wait_time = 1
+            timeout = 2
+            protocol = self._protocol
+            while True:
+                host, port = self._pool[self._pool_idx]
+                try:
+                    await self._connect(timeout=timeout)
+                    await self._ping(timeout=2)
+                    await self._authenticate(timeout=5)
+                    await self._rejoin()
+                except Exception as e:
+                    logging.error(
+                        f'Connecting to {host}:{port} failed: '
+                        f'{e}({e.__class__.__name__}), '
+                        f'Try next connect in {wait_time} seconds'
+                    )
+                else:
+                    if protocol and protocol.transport:
+                        # make sure the `old` connection will be dropped
+                        self._loop.call_later(10.0, protocol.transport.close)
+                    break
 
-            await asyncio.sleep(wait_time)
-            wait_time *= 2
-            wait_time = min(wait_time, self.MAX_RECONNECT_WAIT_TIME)
-            timeout = min(timeout+1, self.MAX_RECONNECT_TIMEOUT)
+                await asyncio.sleep(wait_time)
+                wait_time *= 2
+                wait_time = min(wait_time, self.MAX_RECONNECT_WAIT_TIME)
+                timeout = min(timeout+1, self.MAX_RECONNECT_TIMEOUT)
+        finally:
+            self._reconnecting = False
 
     def _ping(self, timeout):
         return self._write(Proto.REQ_PING, timeout=timeout)
