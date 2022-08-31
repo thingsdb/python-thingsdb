@@ -1,4 +1,12 @@
+import warnings
+
+
 def id(val):
+    warnings.warn(
+        "do not use this function as it is not compatible with named Ids",
+        DeprecationWarning,
+        stacklevel=2
+    )
     if isinstance(val, str) and val.startswith('room:'):
         try:
             id = int(val[5:])
