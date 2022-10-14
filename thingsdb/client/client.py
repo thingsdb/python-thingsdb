@@ -181,6 +181,7 @@ class Client(Buildin):
         """
         assert self.is_connected() is False
         assert self._reconnecting is False
+        assert len(pool), 'pool must contain at least one node'
         if len(auth) == 1:
             auth = auth[0]
 
