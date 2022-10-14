@@ -339,6 +339,8 @@ class Client(Buildin):
             is_bin: bool = False,
             timeout: Optional[int] = None
     ) -> asyncio.Future:
+        if not self._pool:
+            raise ConnectionError('no connection')
         while True:
             if not self.is_connected():
                 logging.info('Wait for a connection')
