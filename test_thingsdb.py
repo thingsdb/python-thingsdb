@@ -10,9 +10,9 @@ class TestPlayground(unittest.TestCase):
 
         client = Client(ssl=True)
 
-        # await client.connect('playground.thingsdb.net', 9400)
+        await client.connect('playground.thingsdb.net', 9400)
         try:
-            # await client.authenticate('Fai6NmH7QYxA6WLYPdtgcy')
+            await client.authenticate('Fai6NmH7QYxA6WLYPdtgcy')
             data = await client.query(
                 code='.greetings[index];',
                 index=1,

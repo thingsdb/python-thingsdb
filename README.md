@@ -557,6 +557,19 @@ Emit an event to a room.
 Future which should be awaited. The result of the future will
 be set to `None` when successful.
 
+### no_join
+
+```python
+Room().no_join(client: Client) -> None
+```
+
+Only translate the code _(or test the Id)_ to a room Id. This is useful if you only
+want to use the room to emit events and not listen to events.
+
+#### Args
+- client *(thingsdb.client.Client)*:
+        ThingsDB client instance.
+
 
 ## Failed packages
 

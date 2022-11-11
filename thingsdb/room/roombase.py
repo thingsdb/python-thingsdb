@@ -50,6 +50,33 @@ class RoomBase(abc.ABC):
     def client(self):
         return self._client
 
+    async def no_join(self, client: Client):
+        """Only translate the code to a room Id.
+        This is useful if you wish to use the room for emitting events but
+        not listening to events in this room.
+        """
+        async with client._rooms_lock:
+            if self._scope is None:
+                self._scope = client.get_default_scope()
+            self._client = client
+
+            if isinstance(self._id, str):
+                code = self._id
+                id = await client.query(code, scope=self._scope)
+                if not isinstance(id, int):
+                    raise TypeError(
+                        f'expecting ThingsDB code `{code}` to return with a '
+                        f'room Id (integer value), '
+                        f'but got type `{type(id).__name__}`')
+            else:
+                id = self._id
+            is_room = \
+                await client.query(
+                    '!is_err(try(room(id)));', id=id, scope=self._scope)
+            if not is_room:
+                raise TypeError(f'Id `{id}` is not a room')
+            self._id = id
+
     async def join(self, client: Client, wait: Optional[float] = 60.0):
         """Join a room.
 
