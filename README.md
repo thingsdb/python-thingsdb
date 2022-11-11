@@ -29,6 +29,7 @@
     * [join](#join)
     * [leave](#leave)
     * [emit](#emit)
+    * [no_join](#no_join)
   * [Failed packages](#failed-packages)
 ---------------------------------------
 
