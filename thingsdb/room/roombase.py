@@ -33,7 +33,7 @@ class RoomBase(abc.ABC):
                 Collection scope. If no scope is given, the scope will later
                 be set to the default client scope once the room is joined.
         """
-        self._client = None
+        self._client: Optional[Client] = None
         self._id = room
         self._scope = scope
         self._wait_join = False
@@ -161,6 +161,9 @@ class RoomBase(abc.ABC):
                 Future which should be awaited. The result of the future will
                 be set to `None` when successful.
         """
+        if self._client is None:
+            raise RuntimeError(
+                'must call join(..) or no_join(..) before using emit')
         return self._client._emit(self._id, event, *args, scope=self._scope)
 
     def _on_event(self, pkg) -> Optional[asyncio.Task]:
