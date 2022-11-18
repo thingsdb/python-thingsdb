@@ -48,7 +48,6 @@ class Client(Buildin):
         self._auth = None
         self._pool = None
         self._protocol = None
-        self._pid = 0
         self._write_pkg = self._ensure_write if auto_reconnect else self._write
         self._reconnect = auto_reconnect
         self._scope = '@t'  # default to thingsdb scope
