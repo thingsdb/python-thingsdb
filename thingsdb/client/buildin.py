@@ -52,7 +52,7 @@ class Buildin:
 
         This function generates a change.
         """
-        return await self.query('del_module(key)', name=name, scope='@t')
+        return await self.query('del_module(name)', name=name, scope='@t')
 
     async def del_node(self, node_id: int):
         """Delete a node from ThingsDB.
@@ -372,7 +372,12 @@ class Buildin:
         return await self.query('restart_module(name)', name=name, scope='@t')
 
     async def set_log_level(self, log_level: str, scope='@n') -> None:
-        assert log_level in ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL')
+        log_level = (
+            'DEBUG',
+            'INFO',
+            'WARNING',
+            'ERROR',
+            'CRITICAL').index(log_level)
         return await self.query(
             'set_log_level(log_level)', log_level=log_level, scope=scope)
 
