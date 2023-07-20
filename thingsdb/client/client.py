@@ -561,7 +561,7 @@ class Client(Buildin):
             try:
                 room = self._rooms[room_id]
             except KeyError:
-                logging.warn(
+                logging.warning(
                     f'Got an event (tp:{pkg.tp}) for room Id {room_id} but '
                     f'the room is not known by the ThingsDB client')
             else:
@@ -585,11 +585,12 @@ class Client(Buildin):
         except KeyError:
             if pkg.tp == Proto.ON_WARN:
                 warn = pkg.data
-                logging.warn(
+                logging.warning(
                     f'ThingsDB: '
                     f'{warn["warn_msg"]} ({warn["warn_code"]})')
             else:
-                logging.warn(f'Unexpected event: tp:{pkg.tp} data:{pkg.data}')
+                logging.warning(
+                    f'Unexpected event: tp:{pkg.tp} data:{pkg.data}')
         else:
             asyncio.ensure_future(self._on_room(room_id, pkg), loop=self._loop)
 

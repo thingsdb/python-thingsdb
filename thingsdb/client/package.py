@@ -48,7 +48,7 @@ class Package(object):
                 except Exception:
                     logging.exception('')
                 else:
-                    logging.warn(
+                    logging.warning(
                         f'Wrote the content from {self} to `{_fail_file}`')
             raise e
         finally:

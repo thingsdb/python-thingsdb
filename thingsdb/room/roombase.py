@@ -121,7 +121,7 @@ class RoomBase(abc.ABC):
 
             if self._id in client._rooms:
                 prev = client._rooms[self._id]
-                logging.warn(
+                logging.warning(
                     f'Room Id {self._id} is previously registered by {prev} '
                     f'and will be overwritten with {self}')
 
