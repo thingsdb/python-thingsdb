@@ -383,6 +383,9 @@ class Buildin:
     async def backups_info(self, scope='@n') -> list:
         return await self.query('backups_info()', scope=scope)
 
+    async def backups_ok(self, scope='@n') -> bool:
+        return await self.query('backups_ok()', scope=scope)
+
     async def counters(self, scope='@n'):
         return await self.query('counters()', scope=scope)
 
