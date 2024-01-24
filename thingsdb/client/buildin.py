@@ -248,10 +248,11 @@ class Buildin:
         if expiration_time is not None:
             expiration_time = int(datetime.datetime.timestamp(expiration_time))
 
-        return await self.query("""//ti
+        return await self.query(
+            """//ti
             et = is_nil(expiration_time) ? nil : datetime(expiration_time);
             new_token(user, et, description);
-        """,
+            """,
             user=user,
             expiration_time=expiration_time,
             description=description,
@@ -414,10 +415,11 @@ class Buildin:
         if start_ts is not None:
             start_ts = int(datetime.datetime.timestamp(start_ts))
 
-        return await self.query("""//ti
+        return await self.query(
+            """//ti
             start_ts = is_nil(start_ts) ? nil : datetime(start_ts);
             new_backup(file_template, start_ts, repeat, max_files);
-        """,
+            """,
             file_template=file_template,
             start_ts=start_ts,
             repeat=repeat,
