@@ -1,6 +1,7 @@
 import datetime
 from typing import Union as U
 from typing import Optional
+from typing import Any
 
 
 class Buildin:
@@ -208,8 +209,35 @@ class Buildin:
         """
         return await self.query('new_collection(name)', name=name, scope='@t')
 
-    # TODO: new module
-    # TODO: new node
+    async def new_module(
+            self,
+            name: str,
+            source: str,
+            configuration: Optional[Any] = None):
+        """Creates (and configures) a new module for ThingsDB.
+
+        This function generates a change."""
+        return await self.query(
+            'new_module(name, source, configuration)',
+            name=name,
+            source=source,
+            configuration=configuration,
+            scope='@t')
+
+    async def new_node(
+            self,
+            secret: str,
+            name: str,
+            port: Optional[int] = 9220) -> int:
+        """Adds a new node to ThingsDB.
+
+        This function generates a change."""
+        return await self.query(
+            'new_node(secret, name, port)',
+            secret=secret,
+            name=name,
+            port=port,
+            scope='@t')
 
     async def new_token(
             self,
@@ -220,8 +248,10 @@ class Buildin:
         if expiration_time is not None:
             expiration_time = int(datetime.datetime.timestamp(expiration_time))
 
-        return await self.query(
-            'new_token(user, expiration_time, description)',
+        return await self.query("""//ti
+            et = is_nil(expiration_time) ? nil : datetime(expiration_time);
+            new_token(user, et, description);
+        """,
             user=user,
             expiration_time=expiration_time,
             description=description,
@@ -237,6 +267,9 @@ class Buildin:
         This function generates a change.
         """
         return await self.query('new_user(name)', name=name, scope='@t')
+
+    async def refresh_module(self, name: str):
+        return await self.query('refresh_module(name)', name=name, scope='@t')
 
     async def rename_collection(
             self,
@@ -262,7 +295,15 @@ class Buildin:
             new_name=new_name,
             scope='@t')
 
-    # TODO: restore
+    async def restore(
+            self,
+            filename: str,
+            options: Optional[dict] = {}):
+        return await self.query(
+            'restore(filename, options)',
+            filename=filename,
+            options=options,
+            scope='@t')
 
     async def revoke(self, target: U[int, str], user: str, mask: int):
         return await self.query(
@@ -272,8 +313,25 @@ class Buildin:
             mask=mask,
             scope='@t')
 
-    # TODO: set_module_conf
-    # TODO: set_module_scope
+    async def set_module_conf(
+            self,
+            name: str,
+            configuration: Optional[dict] = None):
+        return await self.query(
+            'set_module_conf(name, configuration)',
+            name=name,
+            configuration=configuration,
+            scope='@t')
+
+    async def set_module_scope(
+            self,
+            name: str,
+            scope: U[str, None]):
+        return await self.query(
+            'set_module_scope(name, module_scope)',
+            name=name,
+            module_scope=scope,
+            scope='@t')
 
     async def set_password(self, user: str, new_password: str = None) -> None:
         return await self.query(
@@ -342,7 +400,26 @@ class Buildin:
     async def has_backup(self, backup_id: int, scope='@n'):
         return await self.query('has_backup(id)', id=backup_id, scope=scope)
 
-    # TODO: new_backup
+    async def new_backup(
+            self,
+            file_template: str,
+            start_ts: Optional[datetime.datetime] = None,
+            repeat: Optional[int] = 0,
+            max_files: Optional[int] = 7,
+            scope='@n'):
+
+        if start_ts is not None:
+            start_ts = int(datetime.datetime.timestamp(start_ts))
+
+        return await self.query("""//ti
+            start_ts = is_nil(start_ts) ? nil : datetime(start_ts);
+            new_backup(file_template, start_ts, repeat, max_files);
+        """,
+            file_template=file_template,
+            start_ts=start_ts,
+            repeat=repeat,
+            max_files=max_files,
+            scope=scope)
 
     async def node_info(self, scope='@n') -> dict:
         return await self.query('node_info()', scope=scope)
