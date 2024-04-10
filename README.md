@@ -12,12 +12,14 @@
   * [Client](#client)
     * [authenticate](#authenticate)
     * [close](#close)
+    * [close_and_wait](#close_and_wait)
     * [connect](#connect)
     * [connect_pool](#connect_pool)
     * [get_default_scope](#get_default_scope)
     * [get_event_loop](#get_event_loop)
     * [get_rooms](#get_rooms)
     * [is_connected](#is_connected)
+    * [is_websocket](#is_websocket)
     * [query](#query)
     * [reconnect](#reconnect)
     * [run](#run)
@@ -31,6 +33,7 @@
     * [emit](#emit)
     * [no_join](#no_join)
   * [Failed packages](#failed-packages)
+  * [WebSockets](#websockets)
 ---------------------------------------
 
 ## Installation
@@ -71,8 +74,7 @@ async def hello_world():
 
     finally:
         # the will close the client in a nice way
-        client.close()
-        await client.wait_closed()
+        await client.close_and_wait()
 
 # run the hello world example
 asyncio.get_event_loop().run_until_complete(hello_world())
@@ -148,6 +150,16 @@ This method will return immediately so the connection may not be
 closed yet after a call to `close()`. Use the [wait_closed()](#wait_closed) method
 after calling this method if this is required.
 
+### close_and_wait
+
+```python
+async Client().close_and_wait() -> None
+```
+
+Close and wait for the the connection to be closed.
+
+This is equivalent of combining [close()](#close)) and [wait_closed()](#wait_closed).
+
 ### connect
 
 ```python
@@ -167,11 +179,12 @@ connection before using the connection.
 #### Args
 
 - *host (str)*:
-    A hostname, IP address, FQDN to connect to.
+    A hostname, IP address, FQDN or WebSocket URI to connect to.
 - *port (int, optional)*:
     Integer value between 0 and 65535 and should be the port number
     where a ThingsDB node is listening to for client connections.
-    Defaults to 9200.
+    Defaults to 9200. For WebSocket connections the port must be
+    provided with the URI (host argument).
 - *timeout (int, optional)*:
     Can be be used to control the maximum time the client will
     attempt to create a connection. The timeout may be set to
@@ -207,9 +220,9 @@ to perform the authentication.
 
 ```python
 await connect_pool([
-    'node01.local',             # address as string
-    'node02.local',             # port will default to 9200
-    ('node03.local', 9201),     # ..or with an explicit port
+    'node01.local',             # address or WebSocket URI as string
+    'node02.local',             # port will default to 9200 or ignored for URI
+    ('node03.local', 9201),     # ..or with an explicit port (ignored for URI)
 ], "admin", "pass")
 ```
 
@@ -217,7 +230,8 @@ await connect_pool([
 
 - *pool (list of addresses)*:
     Should be an iterable with node address strings, or tuples
-    with `address` and `port` combinations in a tuple or list.
+    with `address` and `port` combinations in a tuple or list. For WebSockets,
+    the address must be an URI with the port included. (e.g: `"ws://host:9270"`)
 - *\*auth (str or (str, str))*:
     Argument `auth` can be be either a string with a token or a
     tuple with username and password. (the latter may be provided
@@ -278,6 +292,18 @@ Client().is_connected() -> bool
 ```
 
 Can be used to check if the client is connected.
+
+#### Returns
+`True` when the client is connected else `False`.
+
+
+### is_websocket
+
+```python
+Client().is_websocket() -> bool
+```
+
+Can be used to check if the client is using a WebSocket connection.
 
 #### Returns
 `True` when the client is connected else `False`.
@@ -594,4 +620,46 @@ set_package_fail_file('/tmp/thingsdb-invalid-data.mp')
 
 # When a package is received which fails to unpack, the data from this package
 # will be stored to file.
+```
+
+
+## WebSockets
+
+Since ThingsDB 1.6 has received WebSocket support. The Python client is able to use the WebSockets protocol by providing the `host` as URI.
+
+For WebSocket connections,the `port` argument will be ignored and must be specified with the URI instead.
+
+For example:
+
+```python
+import asyncio
+from thingsdb.client import Client
+
+async def hello_world():
+    client = Client()
+
+    # replace `ws://localhost:9270` with your URI
+    await client.connect('ws://localhost:9270')
+
+    # for a secure connection, use wss:// and provide an SSL context, example:
+    # (ssl can be set either to True or False, or an SSLContext)
+    #
+    #   await client.connect('wss://localhost:9270', ssl=True)
+
+    try:
+        # replace `admin` and `pass` with your username and password
+        # or use a valid token string
+        await client.authenticate('admin', 'pass')
+
+        # perform the hello world code...
+        print(await client.query('''
+            "Hello World!";
+        ''')
+
+    finally:
+        # the will close the client in a nice way
+        await client.close_and_wait()
+
+# run the hello world example
+asyncio.get_event_loop().run_until_complete(hello_world())
 ```

@@ -396,12 +396,12 @@ class ProtocolWS(_Protocol):
         if self._proto:
             await self._proto.wait_closed()
 
-    async def close_and_wait(self) -> asyncio.Future:
+    async def close_and_wait(self):
         if self._proto:
             await self._proto.close()
 
     def info(self):
-        return self._proto.get_extra_info('socket', None)
+        return self._proto.transport.get_extra_info('socket', None)
 
     def is_connected(self) -> bool:
         return self._proto is not None

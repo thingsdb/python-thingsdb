@@ -205,12 +205,12 @@ class Client(Buildin):
 
         Args:
             host (str):
-                A hostname, IP address, FQDN, WebSocket URI to connect to.
+                A hostname, IP address, FQDN or WebSocket URI to connect to.
             port (int, optional):
                 Integer value between 0 and 65535 and should be the port number
                 where a ThingsDB node is listening to for client connections.
                 Defaults to 9200. For WebSocket connections the port must be
-                provided with the URI (host argument)
+                provided with the URI (host argument).
             timeout (int, optional):
                 Can be be used to control the maximum time the client will
                 attempt to create a connection. The timeout may be set to
