@@ -347,8 +347,9 @@ class ProtocolWS(_Protocol):
             assert type(websockets).__name__ == 'module'
         except Exception:
             raise ImportError(
-                'missing module `websockets`; '
-                'install `websockets` using: \n\n  pip install websockets\n\n')
+                'missing `websockets` module; '
+                'please install the `websockets` module: '
+                '\n\n  pip install websockets\n\n')
         self._proto: WebSocketClientProtocol = None
         self._is_closing = False
 

@@ -626,8 +626,15 @@ set_package_fail_file('/tmp/thingsdb-invalid-data.mp')
 ## WebSockets
 
 Since ThingsDB 1.6 has received WebSocket support. The Python client is able to use the WebSockets protocol by providing the `host` as URI.
-
 For WebSocket connections,the `port` argument will be ignored and must be specified with the URI instead.
+
+Default the `websockets` package is **not included** when installing this connector.
+
+If you want to use WebSockets, make sure to install the package:
+
+```
+pip install websockets
+```
 
 For example:
 
