@@ -33,6 +33,18 @@ class Package(object):
         self.total = self.__class__.st_package.size + self.length
         self.data = None
 
+    def _handle_fail_file(self, message: bytes):
+        if _fail_file:
+            try:
+                with open(_fail_file, 'wb') as f:
+                    f.write(
+                        message[self.__class__.st_package.size:self.total])
+            except Exception:
+                logging.exception('')
+            else:
+                logging.warning(
+                    f'Wrote the content from {self} to `{_fail_file}`')
+
     def extract_data_from(self, barray: bytearray) -> None:
         try:
             self.data = msgpack.unpackb(
@@ -40,19 +52,20 @@ class Package(object):
                 raw=False) \
                 if self.length else None
         except Exception as e:
-            if _fail_file:
-                try:
-                    with open(_fail_file, 'wb') as f:
-                        f.write(
-                            barray[self.__class__.st_package.size:self.total])
-                except Exception:
-                    logging.exception('')
-                else:
-                    logging.warning(
-                        f'Wrote the content from {self} to `{_fail_file}`')
+            self._handle_fail_file(barray)
             raise e
         finally:
             del barray[:self.total]
+
+    def read_data_from(self, message: bytes) -> None:
+        try:
+            self.data = msgpack.unpackb(
+                message[self.__class__.st_package.size:self.total],
+                raw=False) \
+                if self.length else None
+        except Exception as e:
+            self._handle_fail_file(message)
+            raise e
 
     def __repr__(self) -> str:
         return '<id: {0.pid} size: {0.length} tp: {0.tp}>'.format(self)

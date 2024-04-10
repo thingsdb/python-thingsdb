@@ -7,7 +7,7 @@ from ssl import SSLContext, PROTOCOL_TLS
 from typing import Optional, Union, Any
 from concurrent.futures import CancelledError
 from .buildin import Buildin
-from .protocol import Proto, Protocol
+from .protocol import Proto, Protocol, ProtocolWS
 from ..exceptions import NodeError, AuthError
 from ..util import strip_code
 
@@ -85,7 +85,7 @@ class Client(Buildin):
         Returns:
             bool: `True` when the client is connected else `False`.
         """
-        return bool(self._protocol and self._protocol.transport)
+        return bool(self._protocol and self._protocol.is_connected())
 
     def set_default_scope(self, scope: str) -> None:
         """Set the default scope.
@@ -119,9 +119,9 @@ class Client(Buildin):
         closed yet after a call to `close()`. Use the `wait_closed()` method
         after calling this method if this is required.
         """
-        if self._protocol and self._protocol.transport:
-            self._reconnect = False
-            self._protocol.transport.close()
+        self._reconnect = False
+        if self._protocol:
+            self._protocol.close()
 
     def connection_info(self) -> str:
         """Returns the current connection info as a string.
@@ -134,7 +134,7 @@ class Client(Buildin):
         """
         if not self.is_connected():
             return 'disconnected'
-        socket = self._protocol.transport.get_extra_info('socket', None)
+        socket = self._protocol.info()
         if socket is None:
             return 'unknown_addr'
         addr, port = socket.getpeername()[:2]
@@ -205,11 +205,12 @@ class Client(Buildin):
 
         Args:
             host (str):
-                A hostname, IP address, FQDN to connect to.
+                A hostname, IP address, FQDN, WebSocket URI to connect to.
             port (int, optional):
                 Integer value between 0 and 65535 and should be the port number
                 where a ThingsDB node is listening to for client connections.
-                Defaults to 9200.
+                Defaults to 9200. For WebSocket connections the port must be
+                provided with the URI (host argument)
             timeout (int, optional):
                 Can be be used to control the maximum time the client will
                 attempt to create a connection. The timeout may be set to
@@ -250,8 +251,19 @@ class Client(Buildin):
         Can be used after calling the `close()` method to determine when the
         connection is actually closed.
         """
-        if self._protocol and self._protocol.close_future:
-            await self._protocol.close_future
+        if self._protocol and self._protocol.is_closing():
+            await self._protocol.wait_closed()
+
+    async def close_and_wait(self) -> None:
+        """Close and wait for the connection to be closed.
+
+        This is equivalent to calling close() and await wait_closed()
+        """
+        if self._protocol:
+            await self._protocol.close_and_wait()
+
+    def is_websocket(self) -> bool:
+        return self._protocol.__class__ is ProtocolWS
 
     async def authenticate(
             self,
@@ -538,20 +550,32 @@ class Client(Buildin):
         )
         return auth
 
+    @staticmethod
+    def _is_websocket_host(host):
+        return host.startswith('ws://') or host.startswith('wss://')
+
     async def _connect(self, timeout=5):
         host, port = self._pool[self._pool_idx]
         try:
-            conn = self._loop.create_connection(
-                lambda: Protocol(
+            if self._is_websocket_host(host):
+                conn = ProtocolWS(
                     on_connection_lost=self._on_connection_lost,
-                    on_event=self._on_event,
-                    loop=self._loop),
-                host=host,
-                port=port,
-                ssl=self._ssl)
-            _, self._protocol = await asyncio.wait_for(
-                conn,
-                timeout=timeout)
+                    on_event=self._on_event).connect(uri=host, ssl=self._ssl)
+                self._protocol = await asyncio.wait_for(
+                    conn,
+                    timeout=timeout)
+            else:
+                conn = self._loop.create_connection(
+                    lambda: Protocol(
+                        on_connection_lost=self._on_connection_lost,
+                        on_event=self._on_event,
+                        loop=self._loop),
+                    host=host,
+                    port=port,
+                    ssl=self._ssl)
+                _, self._protocol = await asyncio.wait_for(
+                    conn,
+                    timeout=timeout)
         finally:
             self._pool_idx += 1
             self._pool_idx %= len(self._pool)
@@ -614,15 +638,17 @@ class Client(Buildin):
                     await self._authenticate(timeout=5)
                     await self._rejoin()
                 except Exception as e:
+                    name = host if self._is_websocket_host(host) else \
+                        f'{host}:{port}'
                     logging.error(
-                        f'Connecting to {host}:{port} failed: '
+                        f'Connecting to {name} failed: '
                         f'{e}({e.__class__.__name__}), '
                         f'Try next connect in {wait_time} seconds'
                     )
                 else:
-                    if protocol and protocol.transport:
+                    if protocol and protocol.is_connected():
                         # make sure the `old` connection will be dropped
-                        self._loop.call_later(10.0, protocol.transport.close)
+                        self._loop.call_later(10.0, protocol.close)
                     break
 
                 await asyncio.sleep(wait_time)
