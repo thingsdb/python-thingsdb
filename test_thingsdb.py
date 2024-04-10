@@ -20,8 +20,7 @@ class TestPlayground(unittest.TestCase):
             self.assertEqual(data, want)
 
         finally:
-            client.close()
-            await client.wait_closed()
+            await client.close_and_wait()
 
     def test_playground(self):
         loop = asyncio.get_event_loop()

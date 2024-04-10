@@ -2,6 +2,8 @@ import enum
 import asyncio
 import logging
 import msgpack
+from abc import abstractmethod
+from ssl import SSLContext
 from typing import Optional, Any, Callable
 from .package import Package
 from ..exceptions import AssertionError
@@ -22,11 +24,16 @@ from ..exceptions import RequestCancelError
 from ..exceptions import RequestTimeoutError
 from ..exceptions import ResultTooLargeError
 from ..exceptions import SyntaxError
-from ..exceptions import ThingsDBError
 from ..exceptions import TypeError
 from ..exceptions import ValueError
 from ..exceptions import WriteUVError
 from ..exceptions import ZeroDivisionError
+try:
+    import websockets
+    from websockets.client import connect, WebSocketClientProtocol
+    from websockets.exceptions import ConnectionClosed
+except ImportError:
+    pass
 
 
 class Proto(enum.IntEnum):
@@ -130,7 +137,110 @@ def proto_unkown(f, d):
     f.set_exception(TypeError('unknown package type received ({})'.format(d)))
 
 
-class Protocol(asyncio.Protocol):
+class _Protocol:
+    def __init__(
+            self,
+            on_connection_lost: Callable[[asyncio.Protocol, Exception], None],
+            on_event: Callable[[Package], None],):
+        self._requests = {}
+        self._pid = 0
+        self._on_connection_lost = on_connection_lost
+        self._on_event = on_event
+
+    async def _timer(self, pid: int, timeout: Optional[int]) -> None:
+        await asyncio.sleep(timeout)
+        try:
+            future, task = self._requests.pop(pid)
+        except KeyError:
+            logging.error('Timed out package Id not found: {}'.format(
+                    self._data_package.pid))
+            return None
+
+        future.set_exception(TimeoutError(
+            'request timed out on package Id {}'.format(pid)))
+
+    def _on_response(self, pkg: Package) -> None:
+        try:
+            future, task = self._requests.pop(pkg.pid)
+        except KeyError:
+            logging.error('Received package id not found: {}'.format(pkg.pid))
+            return None
+
+        # cancel the timeout task
+        if task is not None:
+            task.cancel()
+
+        if future.cancelled():
+            return
+
+        _PROTO_RESPONSE_MAP.get(pkg.tp, proto_unkown)(future, pkg.data)
+
+    def _handle_package(self, pkg: Package):
+        tp = pkg.tp
+        if tp in _PROTO_RESPONSE_MAP:
+            self._on_response(pkg)
+        elif tp in _PROTO_EVENTS:
+            try:
+                self._on_event(pkg)
+            except Exception:
+                logging.exception('')
+        else:
+            logging.error(f'Unsupported package type received: {tp}')
+
+    def write(
+            self,
+            tp: Proto,
+            data: Any = None,
+            is_bin: bool = False,
+            timeout: Optional[int] = None
+    ) -> asyncio.Future:
+        """Write data to ThingsDB.
+        This will create a new PID and returns a Future which will be
+        set when a response is received from ThingsDB, or time-out is reached.
+        """
+        self._pid += 1
+        self._pid %= 0x10000  # pid is handled as uint16_t
+
+        data = data if is_bin else b'' if data is None else \
+            msgpack.packb(data, use_bin_type=True)
+
+        header = Package.st_package.pack(
+            len(data),
+            self._pid,
+            tp,
+            tp ^ 0xff)
+
+        self._write(header + data)
+
+        task = asyncio.ensure_future(
+            self._timer(self._pid, timeout)) if timeout else None
+
+        future = asyncio.Future()
+        self._requests[self._pid] = (future, task)
+        return future
+
+    @abstractmethod
+    def _write(self, data: Any):
+        ...
+
+    @abstractmethod
+    def close(self):
+        ...
+
+    @abstractmethod
+    def is_closing(self) -> bool:
+        ...
+
+    @abstractmethod
+    async def wait_closed(self):
+        ...
+
+    @abstractmethod
+    async def close_and_wait(self):
+        ...
+
+
+class Protocol(_Protocol, asyncio.Protocol):
 
     def __init__(
         self,
@@ -138,15 +248,12 @@ class Protocol(asyncio.Protocol):
         on_event: Callable[[Package], None],
         loop: Optional[asyncio.AbstractEventLoop] = None
     ):
+        super().__init__(on_connection_lost, on_event)
         self._buffered_data = bytearray()
         self.package = None
         self.transport = None
         self.loop = asyncio.get_event_loop() if loop is None else loop
         self.close_future = None
-        self._requests = {}
-        self._pid = 0
-        self._on_connection_lost = on_connection_lost
-        self._on_event = on_event
 
     def connection_made(self, transport: asyncio.Transport) -> None:
         '''
@@ -198,78 +305,104 @@ class Protocol(asyncio.Protocol):
                     f'Exception above came from package: {self.package}')
                 self._buffered_data.clear()
             else:
-                tp = self.package.tp
-                if tp in _PROTO_RESPONSE_MAP:
-                    self._on_response(self.package)
-                elif tp in _PROTO_EVENTS:
-                    try:
-                        self._on_event(self.package)
-                    except Exception:
-                        logging.exception('')
-                else:
-                    logging.error(f'Unsupported package type received: {tp}')
+                self._handle_package(self.package)
 
             self.package = None
 
-    def write(
-            self,
-            tp: Proto,
-            data: Any = None,
-            is_bin: bool = False,
-            timeout: Optional[int] = None
-    ) -> asyncio.Future:
-        """Write data to ThingsDB.
-        This will create a new PID and returns a Future which will be
-        set when a response is received from ThingsDB, or time-out is reached.
-        """
+    def _write(self, data: Any):
         if self.transport is None:
             raise ConnectionError('no connection')
+        self.transport.write(data)
 
-        self._pid += 1
-        self._pid %= 0x10000  # pid is handled as uint16_t
+    def close(self):
+        if self.transport:
+            self.transport.close()
 
-        data = data if is_bin else b'' if data is None else \
-            msgpack.packb(data, use_bin_type=True)
+    def is_closing(self) -> bool:
+        return self.close_future is not None
 
-        header = Package.st_package.pack(
-            len(data),
-            self._pid,
-            tp,
-            tp ^ 0xff)
+    async def wait_closed(self):
+        await self.close_future
 
-        self.transport.write(header + data)
+    async def close_and_wait(self):
+        self.close()
+        await self.close_future
 
-        task = asyncio.ensure_future(
-            self._timer(self._pid, timeout)) if timeout else None
+    def info(self):
+        return self.transport.get_extra_info('socket', None)
 
-        future = asyncio.Future()
-        self._requests[self._pid] = (future, task)
-        return future
+    def is_connected(self) -> bool:
+        return self.transport is not None
 
-    async def _timer(self, pid: int, timeout: Optional[int]) -> None:
-        await asyncio.sleep(timeout)
+
+class ProtocolWS(_Protocol):
+    """More a wrapper than a true protocol."""
+    def __init__(
+        self,
+        on_connection_lost: Callable[[asyncio.Protocol, Exception], None],
+        on_event: Callable[[Package], None],
+    ):
+        super().__init__(on_connection_lost, on_event)
         try:
-            future, task = self._requests.pop(pid)
-        except KeyError:
-            logging.error('Timed out package Id not found: {}'.format(
-                    self._data_package.pid))
-            return None
+            assert type(websockets).__name__ == 'module'
+        except Exception:
+            raise ImportError(
+                'missing `websockets` module; '
+                'please install the `websockets` module: '
+                '\n\n  pip install websockets\n\n')
+        self._proto: WebSocketClientProtocol = None
+        self._is_closing = False
 
-        future.set_exception(TimeoutError(
-            'request timed out on package Id {}'.format(pid)))
+    async def connect(self, uri, ssl: SSLContext):
+        self._proto = await connect(uri, ssl=ssl)
+        asyncio.create_task(self._recv_loop())
+        self._is_closing = False
+        return self
 
-    def _on_response(self, pkg: Package) -> None:
+    async def _recv_loop(self):
         try:
-            future, task = self._requests.pop(pkg.pid)
-        except KeyError:
-            logging.error('Received package id not found: {}'.format(pkg.pid))
-            return None
+            while True:
+                data = await self._proto.recv()
+                pkg = None
+                try:
+                    pkg = Package(data)
+                    pkg.read_data_from(data)
+                except Exception:
+                    logging.exception('')
+                    # empty the byte-array to recover from this error
+                    if pkg:
+                        logging.error(
+                            f'Exception above came from package: {pkg}')
+                else:
+                    self._handle_package(pkg)
 
-        # cancel the timeout task
-        if task is not None:
-            task.cancel()
+        except ConnectionClosed as exc:
+            self._proto = None
+            self._on_connection_lost(self, exc)
 
-        if future.cancelled():
-            return
+    def _write(self, data: Any):
+        if self._proto is None:
+            raise ConnectionError('no connection')
+        asyncio.create_task(self._proto.send(data))
 
-        _PROTO_RESPONSE_MAP.get(pkg.tp, proto_unkown)(future, pkg.data)
+    def close(self):
+        self._is_closing = True
+        if self._proto:
+            asyncio.create_task(self._proto.close())
+
+    def is_closing(self) -> bool:
+        self._is_closing
+
+    async def wait_closed(self):
+        if self._proto:
+            await self._proto.wait_closed()
+
+    async def close_and_wait(self):
+        if self._proto:
+            await self._proto.close()
+
+    def info(self):
+        return self._proto.transport.get_extra_info('socket', None)
+
+    def is_connected(self) -> bool:
+        return self._proto is not None
