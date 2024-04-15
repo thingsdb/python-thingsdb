@@ -315,6 +315,7 @@ Client().query(
         code: str,
         scope: Optional[str] = None,
         timeout: Optional[int] = None,
+        skip_strip_code: bool = False,
         **kwargs: Any
 ) -> asyncio.Future
 ```
@@ -335,6 +336,10 @@ Use this method to run `code` in a scope.
     Raise a time-out exception if no response is received within X
     seconds. If no time-out is given, the client will wait forever.
     Defaults to `None`.
+- *skip_strip_code (bool, optional)*:
+    This can be set to `True` which can be helpful when line numbers
+    in syntax errors need to match. When `False`, the code will be
+    stripped from white-space and comments to reduce the code size.
 - *\*\*kwargs (any, optional)*:
     Can be used to inject variable into the ThingsDB code.
 
