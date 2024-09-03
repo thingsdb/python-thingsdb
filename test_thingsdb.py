@@ -23,8 +23,7 @@ class TestPlayground(unittest.TestCase):
             await client.close_and_wait()
 
     def test_playground(self):
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.async_test_playground())
+        asyncio.run(self.async_test_playground())
 
 
 TestPlayground().test_playground()

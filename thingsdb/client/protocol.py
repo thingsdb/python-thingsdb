@@ -252,7 +252,7 @@ class Protocol(_Protocol, asyncio.Protocol):
         self._buffered_data = bytearray()
         self.package = None
         self.transport = None
-        self.loop = asyncio.get_event_loop() if loop is None else loop
+        self.loop = asyncio.get_running_loop() if loop is None else loop
         self.close_future = None
 
     def connection_made(self, transport: asyncio.Transport) -> None:
