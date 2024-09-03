@@ -44,7 +44,7 @@ class Client(Buildin):
                 used. Defaults to `None`.
         """
 
-        self._loop = loop if loop else asyncio.get_event_loop()
+        self._loop = loop if loop else asyncio.get_running_loop()
         self._auth = None
         self._pool = None
         self._protocol = None
