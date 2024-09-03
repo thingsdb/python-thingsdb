@@ -3,7 +3,7 @@
 
 # Python connector for ThingsDB
 
-> This library requires Python 3.6 or higher.
+> This library requires Python 3.7 or higher.
 
 ---------------------------------------
 
