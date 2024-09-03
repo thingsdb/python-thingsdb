@@ -77,7 +77,7 @@ async def hello_world():
         await client.close_and_wait()
 
 # run the hello world example
-asyncio.get_event_loop().run_until_complete(hello_world())
+asyncio.run(hello_world())
 ```
 
 ## Client
@@ -673,5 +673,5 @@ async def hello_world():
         await client.close_and_wait()
 
 # run the hello world example
-asyncio.get_event_loop().run_until_complete(hello_world())
+asyncio.run(hello_world())
 ```

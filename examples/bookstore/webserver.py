@@ -25,9 +25,9 @@ curl \
     --request GET 'http://127.0.0.1:5051/get_books'
 ```
 """
+import asyncio
 from sys import argv
 from functools import partial
-from asyncio import get_event_loop
 from aiohttp import web
 from thingsdb.client import Client
 from thingsdb.room import Room, event
@@ -123,7 +123,7 @@ if __name__ == '__main__':
     client = Client(ssl=True)
     client.set_default_scope(THINGSDB_COLLECTION)
 
-    loop = get_event_loop()
+    loop = asyncio.new_event_loop()
     loop.run_until_complete(setup(client))
 
     app.on_cleanup.append(lambda _: on_cleanup())
