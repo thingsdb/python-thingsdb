@@ -1,7 +1,7 @@
 import warnings
+from typing import Any, Optional
 
-
-def id(val):
+def id(val: Any) -> Optional[int]:
     warnings.warn(
         "do not use this function as it is not compatible with named Ids",
         DeprecationWarning,
@@ -13,6 +13,7 @@ def id(val):
             return id
         except Exception:
             return None
+    assert isinstance(val, dict)
     return val.get('#')
 
 

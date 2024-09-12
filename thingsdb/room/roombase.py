@@ -2,12 +2,14 @@ import abc
 import asyncio
 import logging
 import functools
-from typing import Union, Optional
+from typing import Union, Optional, Dict
 from ..client import Client
 from ..client.protocol import Proto
 
 
 class RoomBase(abc.ABC):
+
+    _event_handlers: Dict[str, callable]
 
     def __init_subclass__(cls):
         cls._event_handlers = {}
@@ -39,15 +41,15 @@ class RoomBase(abc.ABC):
         self._wait_join = False
 
     @property
-    def id(self):
+    def id(self) -> Optional[int]:
         return self._id if isinstance(self._id, int) else None
 
     @property
-    def scope(self):
+    def scope(self) -> Optional[str]:
         return self._scope
 
     @property
-    def client(self):
+    def client(self) -> Client:
         return self._client
 
     async def no_join(self, client: Client):

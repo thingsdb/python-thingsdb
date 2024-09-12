@@ -4,7 +4,7 @@ import logging
 import msgpack
 from abc import abstractmethod
 from ssl import SSLContext
-from typing import Optional, Any, Callable
+from typing import Optional, Any, Callable, Future
 from .package import Package
 from ..exceptions import AssertionError
 from ..exceptions import AuthError
@@ -253,7 +253,7 @@ class Protocol(_Protocol, asyncio.Protocol):
         self.package = None
         self.transport = None
         self.loop = asyncio.get_running_loop() if loop is None else loop
-        self.close_future = None
+        self.close_future: Optional[Future[Any]] = None
 
     def connection_made(self, transport: asyncio.Transport) -> None:
         '''

@@ -1,4 +1,6 @@
+import asyncio
 import datetime
+from abc import abstractmethod
 from typing import Union as U
 from typing import Optional
 from typing import Any
@@ -9,6 +11,16 @@ class Buildin:
     #
     # Build-in functions from the @thingsdb scope
     #
+    @abstractmethod
+    def query(
+            self,
+            code: str,
+            scope: Optional[str] = None,
+            timeout: Optional[int] = None,
+            skip_strip_code: bool = False,
+            **kwargs: Any
+    ) -> asyncio.Future:
+        ...
 
     async def collection_info(self, collection: U[int, str]) -> dict:
         """Returns information about a specific collection.
