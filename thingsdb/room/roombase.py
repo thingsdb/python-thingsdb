@@ -1,10 +1,10 @@
 import abc
 import asyncio
 import logging
-import functools
 from typing import Union, Optional
 from ..client import Client
 from ..client.protocol import Proto
+from ..util.is_name import is_name
 
 
 class RoomBase(abc.ABC):
@@ -61,13 +61,19 @@ class RoomBase(abc.ABC):
             self._client = client
 
             if isinstance(self._id, str):
-                code = self._id
-                id = await client.query(code, scope=self._scope)
-                if not isinstance(id, int):
-                    raise TypeError(
-                        f'expecting ThingsDB code `{code}` to return with a '
-                        f'room Id (integer value), '
-                        f'but got type `{type(id).__name__}`')
+                if is_name(self._id):
+                    id = await client.query(
+                        "room(name).id();",
+                        name=self._id,
+                        scope=self._scope)
+                else:
+                    code = self._id
+                    id = await client.query(code, scope=self._scope)
+                    if not isinstance(id, int):
+                        raise TypeError(
+                            f'expecting ThingsDB code `{code}` to return with '
+                            f'a room Id (integer value), '
+                            f'but got type `{type(id).__name__}`')
             else:
                 id = self._id
             is_room = \
@@ -99,13 +105,19 @@ class RoomBase(abc.ABC):
             self._client = client
 
             if isinstance(self._id, str):
-                code = self._id
-                id = await client.query(code, scope=self._scope)
-                if not isinstance(id, int):
-                    raise TypeError(
-                        f'expecting ThingsDB code `{code}` to return with a '
-                        f'room Id (integer value), '
-                        f'but got type `{type(id).__name__}`')
+                if is_name(self._id):
+                    id = await client.query(
+                        "room(name).id();",
+                        name=self._id,
+                        scope=self._scope)
+                else:
+                    code = self._id
+                    id = await client.query(code, scope=self._scope)
+                    if not isinstance(id, int):
+                        raise TypeError(
+                            f'expecting ThingsDB code `{code}` to return with '
+                            f'a room Id (integer value), '
+                            f'but got type `{type(id).__name__}`')
                 res = await client._join(id, scope=self._scope)
                 if res[0] is None:
                     raise LookupError(
