@@ -1,6 +1,4 @@
-import re
-
-_VALID_NAME = re.compile(r'^[A-Za-z_][0-9A-Za-z_]{0,254}')
+from .is_name import is_name
 
 
 def cnscope(scope):
@@ -18,7 +16,7 @@ def cnscope(scope):
     else:
         name = ''
 
-    if _VALID_NAME.match(name):
+    if is_name(name):
         return name
 
     raise ValueError(f'invalid (collection) scope name: {scope}')

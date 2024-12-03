@@ -484,11 +484,12 @@ class Client(Buildin):
             scope = self._scope
         return self._write_pkg(Proto.REQ_EMIT, [scope, room_id, event, *args])
 
-    def _join(self, *ids: int, scope: Optional[str] = None) -> asyncio.Future:
+    def _join(self, *ids: Union[int, str],
+              scope: Optional[str] = None) -> asyncio.Future:
         """Join one or more rooms.
 
         Args:
-            *ids (int):
+            *ids (int/str):
                 Room Ids to join. No error is returned in case one of
                 the given room Ids are not found within the collection.
                 Instead, the return value will contain `None` instead of the
@@ -512,7 +513,8 @@ class Client(Buildin):
 
         return self._write_pkg(Proto.REQ_JOIN, [scope, *ids])
 
-    def _leave(self, *ids: int, scope: Optional[str] = None) -> asyncio.Future:
+    def _leave(self, *ids: Union[int, str],
+               scope: Optional[str] = None) -> asyncio.Future:
         """Leave one or more rooms.
 
         Stop receiving events for the rooms given by one or more ids. It is
