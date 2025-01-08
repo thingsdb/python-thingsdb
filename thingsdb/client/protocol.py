@@ -354,7 +354,7 @@ class ProtocolWS(_Protocol):
         self._is_closing = False
 
     async def connect(self, uri, ssl: SSLContext):
-        self._proto = await connect(uri, ssl=ssl)
+        self._proto = await connect(uri, ssl=ssl, max_size=2**24)
         asyncio.create_task(self._recv_loop())
         self._is_closing = False
         return self

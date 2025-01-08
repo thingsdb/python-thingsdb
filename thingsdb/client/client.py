@@ -451,7 +451,7 @@ class Client(Buildin):
 
     def _emit(
             self,
-            room_id: int,
+            room_id: Union[int, str],
             event: str,
             *args: Optional[Any],
             scope: Optional[str] = None,
@@ -462,7 +462,7 @@ class Client(Buildin):
         emit an event to a roomId.
 
         Args:
-            room_id (int):
+            room_id (int/str):
                 Room Id to emit the event to.
             event (str):
                 Name of the event to emit.
