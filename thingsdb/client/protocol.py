@@ -36,6 +36,9 @@ except ImportError:
     pass
 
 
+WEBSOCKET_MAX_SIZE = 2**24  # default from websocket is 2**20
+
+
 class Proto(enum.IntEnum):
     # Events
     ON_NODE_STATUS = 0x00
@@ -354,7 +357,7 @@ class ProtocolWS(_Protocol):
         self._is_closing = False
 
     async def connect(self, uri, ssl: SSLContext):
-        self._proto = await connect(uri, ssl=ssl, max_size=2**24)
+        self._proto = await connect(uri, ssl=ssl, max_size=WEBSOCKET_MAX_SIZE)
         asyncio.create_task(self._recv_loop())
         self._is_closing = False
         return self
