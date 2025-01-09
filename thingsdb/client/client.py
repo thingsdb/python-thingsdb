@@ -2,6 +2,7 @@ import asyncio
 import logging
 import random
 import ssl
+import time
 from collections import defaultdict
 from ssl import SSLContext, PROTOCOL_TLS
 from typing import Optional, Union, Any
@@ -360,6 +361,9 @@ class Client(Buildin):
     ) -> asyncio.Future:
         if not self._pool:
             raise ConnectionError('no connection')
+
+        start = time.time()
+
         while True:
             if not self.is_connected():
                 logging.info('Wait for a connection')
@@ -369,7 +373,13 @@ class Client(Buildin):
 
             try:
                 res = await self._protocol.write(tp, data, is_bin, timeout)
-            except (CancelledError, NodeError, AuthError) as e:
+            except (asyncio.exceptions.CancelledError,
+                    CancelledError, NodeError, AuthError) as e:
+                if timeout and time.time() - start > timeout:
+                    msg = str(e) or type(e).__name__
+                    raise asyncio.TimeoutError(
+                        f'failed to transmit within timeout (error: {msg})')
+
                 logging.error(
                     f'Failed to transmit package: '
                     f'{e}({e.__class__.__name__}) (will try again)')

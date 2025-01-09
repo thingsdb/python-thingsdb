@@ -222,6 +222,19 @@ class _Protocol:
         self._requests[self._pid] = (future, task)
         return future
 
+    def cancel_requests(self):
+        if self._requests:
+            logging.error(
+                f'Canceling {len(self._requests)} requests '
+                'due to a lost connection'
+            )
+            while self._requests:
+                _key, (future, task) = self._requests.popitem()
+                if task is not None:
+                    task.cancel()
+                if not future.cancelled():
+                    future.cancel()
+
     @abstractmethod
     def _write(self, data: Any):
         ...
@@ -269,18 +282,7 @@ class Protocol(_Protocol, asyncio.Protocol):
         '''
         override asyncio.Protocol
         '''
-        if self._requests:
-            logging.error(
-                f'Canceling {len(self._requests)} requests '
-                'due to a lost connection'
-            )
-            while self._requests:
-                _key, (future, task) = self._requests.popitem()
-                if task is not None:
-                    task.cancel()
-                if not future.cancelled():
-                    future.cancel()
-
+        self.cancel_requests()
         self.close_future.set_result(None)
         self.close_future = None
         self.transport = None
@@ -380,6 +382,7 @@ class ProtocolWS(_Protocol):
                     self._handle_package(pkg)
 
         except ConnectionClosed as exc:
+            self.cancel_requests()
             self._proto = None
             self._on_connection_lost(self, exc)
 
