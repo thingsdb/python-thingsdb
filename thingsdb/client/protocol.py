@@ -36,8 +36,10 @@ try:
 except ImportError:
     websockets = None
     connect = None
+
     class WebSocketClientProtocol:
         pass
+
     class ConnectionClosed(Exception):
         pass
 
