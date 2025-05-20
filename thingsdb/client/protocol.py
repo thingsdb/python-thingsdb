@@ -33,7 +33,7 @@ try:
     from websockets.client import connect  # type: ignore
     from websockets.client import WebSocketClientProtocol  # type: ignore
     from websockets.exceptions import ConnectionClosed  # type: ignore
-except ImportError:
+except (ImportError, ModuleNotFoundError):
     websockets = None
     connect = None
 
