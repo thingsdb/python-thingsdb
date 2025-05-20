@@ -28,7 +28,7 @@ curl \
 import asyncio
 from sys import argv
 from functools import partial
-from aiohttp import web
+from aiohttp import web  # type: ignore
 from thingsdb.client import Client
 from thingsdb.room import Room, event
 
@@ -62,12 +62,14 @@ def on_cleanup():
 async def add_book(request):
     book = await request.json()
     # Use the procedure to add the book
+    assert bookstore
     await bookstore.add_book(book)
     return web.HTTPNoContent()
 
 
 # We have the books in memory, no need for a query
 async def get_books(request):
+    assert bookstore
     return web.json_response({
         "book_titles": [book['title'] for book in bookstore.books]
     })

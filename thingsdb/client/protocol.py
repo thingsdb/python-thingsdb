@@ -30,10 +30,18 @@ from ..exceptions import WriteUVError
 from ..exceptions import ZeroDivisionError
 try:
     import websockets
-    from websockets.client import connect, WebSocketClientProtocol
-    from websockets.exceptions import ConnectionClosed
-except ImportError:
-    pass
+    from websockets.client import connect  # type: ignore
+    from websockets.client import WebSocketClientProtocol  # type: ignore
+    from websockets.exceptions import ConnectionClosed  # type: ignore
+except (ImportError, ModuleNotFoundError):
+    websockets = None
+    connect = None
+
+    class WebSocketClientProtocol:
+        pass
+
+    class ConnectionClosed(Exception):
+        pass
 
 
 WEBSOCKET_MAX_SIZE = 2**24  # default from websocket is 2**20
@@ -136,7 +144,7 @@ _PROTO_EVENTS = (
 )
 
 
-def proto_unkown(f, d):
+def proto_unknown(f, d):
     f.set_exception(TypeError('unknown package type received ({})'.format(d)))
 
 
@@ -150,23 +158,22 @@ class _Protocol:
         self._on_connection_lost = on_connection_lost
         self._on_event = on_event
 
-    async def _timer(self, pid: int, timeout: Optional[int]) -> None:
+    async def _timer(self, pid: int, timeout: int) -> None:
         await asyncio.sleep(timeout)
         try:
             future, task = self._requests.pop(pid)
         except KeyError:
-            logging.error('Timed out package Id not found: {}'.format(
-                    self._data_package.pid))
+            logging.error(f'Timed out package Id not found: {pid}')
             return None
 
         future.set_exception(TimeoutError(
-            'request timed out on package Id {}'.format(pid)))
+            f'request timed out on package Id {pid}'))
 
     def _on_response(self, pkg: Package) -> None:
         try:
             future, task = self._requests.pop(pkg.pid)
         except KeyError:
-            logging.error('Received package id not found: {}'.format(pkg.pid))
+            logging.error(f'Received package id not found: {pkg.pid}')
             return None
 
         # cancel the timeout task
@@ -176,7 +183,7 @@ class _Protocol:
         if future.cancelled():
             return
 
-        _PROTO_RESPONSE_MAP.get(pkg.tp, proto_unkown)(future, pkg.data)
+        _PROTO_RESPONSE_MAP.get(pkg.tp, proto_unknown)(future, pkg.data)
 
     def _handle_package(self, pkg: Package):
         tp = pkg.tp
@@ -196,7 +203,7 @@ class _Protocol:
             data: Any = None,
             is_bin: bool = False,
             timeout: Optional[int] = None
-    ) -> asyncio.Future:
+    ) -> asyncio.Future[Any]:
         """Write data to ThingsDB.
         This will create a new PID and returns a Future which will be
         set when a response is received from ThingsDB, or time-out is reached.
@@ -269,23 +276,26 @@ class Protocol(_Protocol, asyncio.Protocol):
         self.package = None
         self.transport = None
         self.loop = asyncio.get_running_loop() if loop is None else loop
-        self.close_future = None
+        self.close_future: Optional[asyncio.Future[Any]] = None
 
-    def connection_made(self, transport: asyncio.Transport) -> None:
+    def connection_made(self, transport):
         '''
         override asyncio.Protocol
         '''
         self.close_future = self.loop.create_future()
         self.transport = transport
 
-    def connection_lost(self, exc: Exception) -> None:
+    def connection_lost(self, exc) -> None:
         '''
         override asyncio.Protocol
         '''
         self.cancel_requests()
-        self.close_future.set_result(None)
-        self.close_future = None
+        if self.close_future:
+            self.close_future.set_result(None)
+            self.close_future = None
         self.transport = None
+        if not isinstance(exc, Exception):
+            exc = Exception(f'connection lost ({exc})')
         self._on_connection_lost(self, exc)
 
     def data_received(self, data: bytes) -> None:
@@ -317,7 +327,7 @@ class Protocol(_Protocol, asyncio.Protocol):
     def _write(self, data: Any):
         if self.transport is None:
             raise ConnectionError('no connection')
-        self.transport.write(data)
+        self.transport.write(data)  # type: ignore
 
     def close(self):
         if self.transport:
@@ -327,14 +337,17 @@ class Protocol(_Protocol, asyncio.Protocol):
         return self.close_future is not None
 
     async def wait_closed(self):
-        await self.close_future
+        if self.close_future:
+            await self.close_future
 
     async def close_and_wait(self):
         self.close()
-        await self.close_future
+        if self.close_future:
+            await self.close_future
 
-    def info(self):
-        return self.transport.get_extra_info('socket', None)
+    def info(self) -> Any:
+        if self.transport:
+            return self.transport.get_extra_info('socket', None)
 
     def is_connected(self) -> bool:
         return self.transport is not None
@@ -355,10 +368,11 @@ class ProtocolWS(_Protocol):
                 'missing `websockets` module; '
                 'please install the `websockets` module: '
                 '\n\n  pip install websockets\n\n')
-        self._proto: WebSocketClientProtocol = None
+        self._proto: Optional[WebSocketClientProtocol] = None
         self._is_closing = False
 
-    async def connect(self, uri, ssl: SSLContext):
+    async def connect(self, uri, ssl: Optional[SSLContext]):
+        assert connect, 'websockets required, please install websockets'
         self._proto = await connect(uri, ssl=ssl, max_size=WEBSOCKET_MAX_SIZE)
         asyncio.create_task(self._recv_loop())
         self._is_closing = False
@@ -367,7 +381,7 @@ class ProtocolWS(_Protocol):
     async def _recv_loop(self):
         try:
             while True:
-                data = await self._proto.recv()
+                data = await self._proto.recv()  # type: ignore
                 pkg = None
                 try:
                     pkg = Package(data)
@@ -383,32 +397,34 @@ class ProtocolWS(_Protocol):
 
         except ConnectionClosed as exc:
             self.cancel_requests()
-            self._proto = None
-            self._on_connection_lost(self, exc)
+            self._proto = None  # type: ignore
+            self._on_connection_lost(self, exc)  # type: ignore
 
     def _write(self, data: Any):
         if self._proto is None:
             raise ConnectionError('no connection')
-        asyncio.create_task(self._proto.send(data))
+        asyncio.create_task(self._proto.send(data))  # type: ignore
 
     def close(self):
         self._is_closing = True
         if self._proto:
-            asyncio.create_task(self._proto.close())
+            asyncio.create_task(self._proto.close())  # type: ignore
 
     def is_closing(self) -> bool:
-        self._is_closing
+        return self._is_closing
 
     async def wait_closed(self):
         if self._proto:
-            await self._proto.wait_closed()
+            await self._proto.wait_closed()  # type: ignore
 
     async def close_and_wait(self):
         if self._proto:
-            await self._proto.close()
+            await self._proto.close()  # type: ignore
 
-    def info(self):
-        return self._proto.transport.get_extra_info('socket', None)
+    def info(self) -> Any:
+        return self._proto.transport.get_extra_info(  # type: ignore
+            'socket',
+            None)
 
     def is_connected(self) -> bool:
         return self._proto is not None

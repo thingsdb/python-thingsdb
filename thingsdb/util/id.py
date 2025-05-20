@@ -13,6 +13,7 @@ def id(val):
             return id
         except Exception:
             return None
+    assert isinstance(val, dict)
     return val.get('#')
 
 

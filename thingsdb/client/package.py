@@ -48,11 +48,11 @@ class Package(object):
     def extract_data_from(self, barray: bytearray) -> None:
         try:
             self.data = msgpack.unpackb(
-                barray[self.__class__.st_package.size:self.total],
+                bytes(barray[self.__class__.st_package.size:self.total]),
                 raw=False) \
                 if self.length else None
         except Exception as e:
-            self._handle_fail_file(barray)
+            self._handle_fail_file(bytes(barray))
             raise e
         finally:
             del barray[:self.total]
