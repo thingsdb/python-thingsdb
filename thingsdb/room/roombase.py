@@ -15,12 +15,12 @@ class RoomBase(abc.ABC):
         for key, val in cls.__dict__.items():
             if not key.startswith('__') and \
                     callable(val) and hasattr(val, '_event'):
-                cls._event_handlers[val._event] = val
+                cls._event_handlers[val._event] = val  # type: ignore
 
     def __init__(
             self,
             room: Union[int, str],
-            scope: str = None):
+            scope: Optional[str] = None):
         """Initializes a room.
 
         Args:
@@ -29,7 +29,7 @@ class RoomBase(abc.ABC):
                 Examples are:
                    - 123
                    - '.my_room.id();'
-            scope (str):
+            scope (str?):
                 Collection scope. If no scope is given, the scope will later
                 be set to the default client scope once the room is joined.
         """
@@ -47,7 +47,10 @@ class RoomBase(abc.ABC):
         return self._scope
 
     @property
-    def client(self):
+    def client(self) -> Client:
+        if self._client is None:
+            raise RuntimeError(
+                'must call join(..) or no_join(..) before we have a client')
         return self._client
 
     async def no_join(self, client: Client):
@@ -106,8 +109,9 @@ class RoomBase(abc.ABC):
 
             if isinstance(self._id, str):
                 if is_name(self._id):
+                    code = "room(name).id();"
                     id = await client.query(
-                        "room(name).id();",
+                        code,
                         name=self._id,
                         scope=self._scope)
                 else:
@@ -144,6 +148,7 @@ class RoomBase(abc.ABC):
 
         if wait:
             # wait for the first join to finish
+            assert isinstance(self._wait_join, asyncio.Future)
             await asyncio.wait_for(self._wait_join, wait)
 
     async def leave(self):
@@ -155,11 +160,14 @@ class RoomBase(abc.ABC):
             raise TypeError(
                 'room Id is not an integer; most likely `join()` has never '
                 'been called')
+        if self._client is None:
+            raise RuntimeError(
+                'must call join(..) or no_join(..) before using emit')
         res = await self._client._leave(self._id, scope=self._scope)
         if res[0] is None:
             raise LookupError(f'room Id {self._id} is not found (anymore)')
 
-    def emit(self, event: str, *args) -> asyncio.Future:
+    async def emit(self, event: str, *args):
         """Emit an event.
 
         Args:
@@ -176,7 +184,7 @@ class RoomBase(abc.ABC):
         if self._client is None:
             raise RuntimeError(
                 'must call join(..) or no_join(..) before using emit')
-        return self._client._emit(self._id, event, *args, scope=self._scope)
+        await self._client._emit(self._id, event, *args, scope=self._scope)
 
     def _on_event(self, pkg) -> Optional[asyncio.Task]:
         return self.__class__._ROOM_EVENT_MAP[pkg.tp](self, pkg.data)
@@ -198,6 +206,7 @@ class RoomBase(abc.ABC):
         pass
 
     async def _on_first_join(self):
+        assert isinstance(self._wait_join, asyncio.Future)
         fut = self._wait_join
         self._wait_join = None
         # Instead of using finally to set the result, we could also catch the
@@ -223,11 +232,13 @@ class RoomBase(abc.ABC):
             # User has decided not to wait for the join. Thus we can asume that
             # event handlers do not depend on the on_join to be finished
             assert self._wait_join is False
-            loop = self.client.get_event_loop()
+            assert self._client
+            loop = self._client.get_event_loop()
             asyncio.ensure_future(self.on_join(), loop=loop)
 
     def _on_stop(self, func):
         try:
+            assert self._client
             del self._client._rooms[self._id]
         except KeyError:
             pass

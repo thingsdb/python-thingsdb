@@ -1,4 +1,6 @@
+import asyncio
 import datetime
+from abc import ABC, abstractmethod
 from typing import Union as U
 from typing import Optional
 from typing import Any
@@ -9,6 +11,15 @@ class Buildin:
     #
     # Build-in functions from the @thingsdb scope
     #
+    @abstractmethod
+    def query(
+            self,
+            code: str,
+            scope: Optional[str] = None,
+            timeout: Optional[int] = None,
+            skip_strip_code: bool = False,
+            **kwargs: Any) -> asyncio.Future[Any]:
+        ...
 
     async def collection_info(self, collection: U[int, str]) -> dict:
         """Returns information about a specific collection.
@@ -245,8 +256,8 @@ class Buildin:
             expiration_time: Optional[datetime.datetime] = None,
             description: str = ''):
 
-        if expiration_time is not None:
-            expiration_time = int(datetime.datetime.timestamp(expiration_time))
+        ts = None if expiration_time is None \
+            else int(expiration_time.timestamp())
 
         return await self.query(
             """//ti
@@ -254,7 +265,7 @@ class Buildin:
             new_token(user, et, description);
             """,
             user=user,
-            expiration_time=expiration_time,
+            expiration_time=ts,
             description=description,
             scope='@t')
 
@@ -334,7 +345,8 @@ class Buildin:
             module_scope=scope,
             scope='@t')
 
-    async def set_password(self, user: str, new_password: str = None) -> None:
+    async def set_password(self, user: str,
+                           new_password: Optional[str] = None) -> None:
         return await self.query(
             'set_password(user, new_password)',
             user=user,
@@ -412,8 +424,7 @@ class Buildin:
             max_files: Optional[int] = 7,
             scope='@n'):
 
-        if start_ts is not None:
-            start_ts = int(datetime.datetime.timestamp(start_ts))
+        ts = None if start_ts is None else int(start_ts.timestamp())
 
         return await self.query(
             """//ti
@@ -421,7 +432,7 @@ class Buildin:
             new_backup(file_template, start_ts, repeat, max_files);
             """,
             file_template=file_template,
-            start_ts=start_ts,
+            start_ts=ts,
             repeat=repeat,
             max_files=max_files,
             scope=scope)
@@ -454,14 +465,14 @@ class Buildin:
         return await self.query('restart_module(name)', name=name, scope='@t')
 
     async def set_log_level(self, log_level: str, scope='@n') -> None:
-        log_level = (
+        level = (
             'DEBUG',
             'INFO',
             'WARNING',
             'ERROR',
             'CRITICAL').index(log_level)
         return await self.query(
-            'set_log_level(log_level)', log_level=log_level, scope=scope)
+            'set_log_level(log_level)', log_level=level, scope=scope)
 
     async def shutdown(self, scope='@n') -> None:
         """Shutdown the node in the selected scope.
