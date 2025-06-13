@@ -1,5 +1,6 @@
 import asyncio
 from contextlib import asynccontextmanager
+from typing import AsyncGenerator
 from ..client import Client
 from ..room import Room, event
 
@@ -42,10 +43,12 @@ async def setup(client: Client, collection: str = 'lock'):
                 inner.room.emit('go');
             },
             acquire: |this, timeout| {
-                immediately = this.queue.len() == 0;
+                size = this.queue.len();
+                immediately = size == 0;
                 inner = Inner{timeout:,};
                 this.queue.push(inner);
-                immediately ? inner.set_task(this.id()) : inner.room.id();
+                immediately && inner.set_task(this.id());
+                [immediately, inner.room.id(), size];
             },
             release: |this, room_id| try({
                 if (this.queue.first().room.id() == room_id) {
@@ -74,12 +77,16 @@ async def setup(client: Client, collection: str = 'lock'):
             room(room_id).name() == 'go';
         });
 
+        new_procedure('locked', |name| {
+            bool(.lock[name].queue);
+        });
+
         new_procedure('release', |name, room_id| {
             wse(.lock[name].release(room_id));
         });
 
         .to_type('Root');
-    """)
+    """, scope=f'//{collection}')
 
 
 class _InnerRoom(Room):
@@ -93,28 +100,38 @@ class _InnerRoom(Room):
         # We might have missed the event during the join. If so, set the
         # future result to continue.
         ok = await self.client.run('test', self.id, scope=self.scope)
-        if ok:
+        if ok and not self.future.done():
             self.future.set_result(None)
 
     @event('go')
     def on_go(self):
-        self.future.set_result(None)
+        if not self.future.done():
+            self.future.set_result(None)
 
 
 @asynccontextmanager
 async def lock(client: Client, name: str,
                scope: str = '//lock',
-               timeout: int = 60):
+               timeout: int = 60) -> AsyncGenerator[int, None]:
 
-    room_id: int | None = \
+    res: tuple[bool, int, int] = \
         await client.run('acquire', name, timeout, scope=scope)
 
-    if room_id is not None:
+    immediately, room_id, size = res
+    if not immediately:
         room = _InnerRoom(room_id, scope=scope)
         await room.join(client, wait=None)
-        await room.future
+        try:
+            await asyncio.wait_for(room.future, timeout=timeout*size)
+        except asyncio.TimeoutError:
+            pass
 
     try:
         yield room_id  # Lock Id assigned to the 'as' target (not required)
     finally:
-        await client.run('release', room_id, scope=scope)
+        await client.run('release', name, room_id, scope=scope)
+
+
+async def locked(client: Client, name: str, scope: str = '//lock') -> bool:
+    res: bool = await client.run('locked', name, scope=scope)
+    return res
