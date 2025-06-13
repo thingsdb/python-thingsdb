@@ -32,7 +32,7 @@ async def main():
     client = Client()
 
     # Multiple locks may be created, make sure you give each lock a unique name
-    mylock = partial(lock.lock, client=client, name='my-lock', timeout=5)
+    mylock = partial(lock.lock, client=client, name='my-lock', timeout=30)
 
     await client.connect('localhost')
     try:
