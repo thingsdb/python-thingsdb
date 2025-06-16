@@ -45,7 +45,7 @@ class Client(Buildin):
                 used. Defaults to `None`.
         """
 
-        self._loop = loop if loop else asyncio.get_running_loop()
+        self._loop = loop
         self._auth = None
         self._pool = None
         self._protocol = None
@@ -78,6 +78,8 @@ class Client(Buildin):
         Returns:
             AbstractEventLoop: The event loop used by the client.
         """
+        if self._loop is None:
+            self._loop = asyncio.get_running_loop()
         return self._loop
 
     def is_connected(self) -> bool:
@@ -247,7 +249,8 @@ class Client(Buildin):
         if self._reconnecting:
             return
         self._reconnecting = True
-        return asyncio.ensure_future(self._reconnect_loop(), loop=self._loop)
+        return asyncio.ensure_future(self._reconnect_loop(),
+                                     loop=self.get_event_loop())
 
     async def wait_closed(self) -> None:
         """Wait for a connection to close.
@@ -594,11 +597,12 @@ class Client(Buildin):
                     conn,
                     timeout=timeout)
             else:
-                conn = self._loop.create_connection(
+                loop = self.get_event_loop()
+                conn = loop.create_connection(
                     lambda: Protocol(
                         on_connection_lost=self._on_connection_lost,
                         on_event=self._on_event,
-                        loop=self._loop),
+                        loop=loop),
                     host=host,
                     port=port,
                     ssl=self._ssl)
@@ -645,7 +649,8 @@ class Client(Buildin):
                 logging.warning(
                     f'Unexpected event: tp:{pkg.tp} data:{pkg.data}')
         else:
-            asyncio.ensure_future(self._on_room(room_id, pkg), loop=self._loop)
+            asyncio.ensure_future(self._on_room(room_id, pkg),
+                                  loop=self.get_event_loop())
 
     def _on_connection_lost(self, protocol, exc):
         if self._protocol is not protocol:
@@ -678,7 +683,7 @@ class Client(Buildin):
                 else:
                     if protocol and protocol.is_connected():
                         # make sure the `old` connection will be dropped
-                        self._loop.call_later(10.0, protocol.close)
+                        self.get_event_loop().call_later(10.0, protocol.close)
                     break
 
                 await asyncio.sleep(wait_time)
