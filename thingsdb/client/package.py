@@ -1,13 +1,12 @@
 import struct
 import msgpack
 import logging
-from typing import Optional
 
 
 _fail_file = ''
 
 
-def set_package_fail_file(fn: Optional[str] = ''):
+def set_package_fail_file(fn: str | None = ''):
     """Configure a file name to dump the last failed package.
 
     Only the MessagePack data will be dumped in this file, not the package
