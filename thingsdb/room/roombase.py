@@ -261,7 +261,7 @@ class RoomBase(abc.ABC):
     }
 
     @staticmethod
-    def event(event):
+    def event(event: str):
         def wrapped(fun):
             fun._event = event
             return fun

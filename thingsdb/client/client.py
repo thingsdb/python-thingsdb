@@ -5,7 +5,11 @@ import ssl
 import time
 from collections import defaultdict
 from ssl import SSLContext, PROTOCOL_TLS
+<<<<<<< HEAD
 from typing import Any
+=======
+from typing import Optional, Union, Any, List, Tuple
+>>>>>>> 032903ac574ee0bd798375acf264f6c100916d3d
 from concurrent.futures import CancelledError
 from .buildin import Buildin
 from .protocol import Proto, Protocol, ProtocolWS
@@ -146,7 +150,7 @@ class Client(Buildin):
     def connect_pool(
             self,
             pool: list[str | tuple[str, int]],
-            *auth: str | tuple
+            *auth: str | tuple[str, str]
     ) -> asyncio.Future[None]:
         """Connect using a connection pool.
 
