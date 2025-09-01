@@ -4,7 +4,7 @@ import logging
 import msgpack
 from abc import abstractmethod
 from ssl import SSLContext
-from typing import Optional, Any, Callable
+from typing import Any, Callable
 from .package import Package
 from ..exceptions import AssertionError
 from ..exceptions import AuthError
@@ -202,7 +202,7 @@ class _Protocol:
             tp: Proto,
             data: Any = None,
             is_bin: bool = False,
-            timeout: Optional[int] = None
+            timeout: int | None = None
     ) -> asyncio.Future[Any]:
         """Write data to ThingsDB.
         This will create a new PID and returns a Future which will be
@@ -269,14 +269,14 @@ class Protocol(_Protocol, asyncio.Protocol):
         self,
         on_connection_lost: Callable[[asyncio.Protocol, Exception], None],
         on_event: Callable[[Package], None],
-        loop: Optional[asyncio.AbstractEventLoop] = None
+        loop: asyncio.AbstractEventLoop | None = None
     ):
         super().__init__(on_connection_lost, on_event)
         self._buffered_data = bytearray()
         self.package = None
         self.transport = None
         self.loop = asyncio.get_running_loop() if loop is None else loop
-        self.close_future: Optional[asyncio.Future[Any]] = None
+        self.close_future: asyncio.Future[Any] | None = None
 
     def connection_made(self, transport):
         '''
@@ -368,10 +368,10 @@ class ProtocolWS(_Protocol):
                 'missing `websockets` module; '
                 'please install the `websockets` module: '
                 '\n\n  pip install websockets\n\n')
-        self._proto: Optional[WebSocketClientProtocol] = None
+        self._proto: WebSocketClientProtocol | None = None
         self._is_closing = False
 
-    async def connect(self, uri, ssl: Optional[SSLContext]):
+    async def connect(self, uri, ssl: SSLContext | None):
         assert connect, 'websockets required, please install websockets'
         self._proto = await connect(uri, ssl=ssl, max_size=WEBSOCKET_MAX_SIZE)
         asyncio.create_task(self._recv_loop())

@@ -3,7 +3,7 @@
 
 # Python connector for ThingsDB
 
-> This library requires Python 3.9 or higher.
+> This library requires Python 3.10 or higher.
 
 ---------------------------------------
 
@@ -89,8 +89,8 @@ ThingsDB.
 ```python
 thingsdb.client.Client(
     auto_reconnect: bool = True,
-    ssl: Optional[Union[bool, ssl.SSLContext]] = None,
-    loop: Optional[asyncio.AbstractEventLoop] = None
+    ssl: bool | ssl.SSLContext | None = None,
+    loop: asyncio.AbstractEventLoop | None = None
 ) -> Client
 ```
 Initialize a ThingsDB client
@@ -119,8 +119,8 @@ Initialize a ThingsDB client
 
 ```python
 async Client().authenticate(
-    *auth: Union[str, tuple],
-    timeout: Optional[int] = 5
+    *auth: str | tuple,
+    timeout: int | None = 5
 ) -> None
 ```
 
@@ -166,7 +166,7 @@ This is equivalent of combining [close()](#close)) and [wait_closed()](#wait_clo
 Client().connect(
     host: str,
     port: int = 9200,
-    timeout: Optional[int] = 5
+    timeout: int | None = 5
 ) -> asyncio.Future
 ```
 
@@ -204,7 +204,7 @@ set to `None` when successful.
 ```python
 Client().connect_pool(
     pool: list,
-    *auth: Union[str, tuple]
+    *auth: str | tuple
 ) -> asyncio.Future
 ```
 
@@ -313,8 +313,8 @@ Can be used to check if the client is using a WebSocket connection.
 ```python
 Client().query(
         code: str,
-        scope: Optional[str] = None,
-        timeout: Optional[int] = None,
+        scope: str | None = None,
+        timeout: int | None = None,
         skip_strip_code: bool = False,
         **kwargs: Any
 ) -> asyncio.Future
@@ -368,7 +368,7 @@ contain the result of the ThingsDB code when successful.
 ### reconnect
 
 ```python
-async Client().reconnect() -> Optional[Future]
+async Client().reconnect() -> Future | None
 ```
 
 Re-connect to ThingsDB.
@@ -384,9 +384,9 @@ possible but not required.
 ```python
 Client().run(
     procedure: str,
-    *args: Optional[Any],
-    scope: Optional[str] = None,
-    timeout: Optional[int] = None,
+    *args: Any,
+    scope: str | None = None,
+    timeout: int | None = None,
     **kwargs: Any
 ) -> asyncio.Future
 ```
@@ -547,7 +547,7 @@ Property | Description
 ### join
 
 ```python
-Room().join(client: Client, wait: Optional[float] = 60.0) -> None
+Room().join(client: Client, wait: float | None = 60.0) -> None
 ```
 
 Joins the room.
@@ -572,7 +572,7 @@ Leave the room. If the room is not found, a `LookupError` will be raised.
 ### emit
 
 ```python
-Room().emit(event: str, *args: Optional[Any],) -> asyncio.Future
+Room().emit(event: str, *args: Any) -> asyncio.Future
 ```
 
 Emit an event to a room.
