@@ -38,6 +38,8 @@ except (ImportError, ModuleNotFoundError):
     websockets = None
     connect = None
 
+    class ClientProtocol:
+        pass
 
     class ConnectionClosed(Exception):
         pass
