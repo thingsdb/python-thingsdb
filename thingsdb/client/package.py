@@ -26,7 +26,7 @@ class Package(object):
 
     st_package = struct.Struct('<IHBB')
 
-    def __init__(self, barray: bytearray) -> None:
+    def __init__(self, barray: bytearray | bytes) -> None:
         self.length, self.pid, self.tp, self.checkbit = \
             self.__class__.st_package.unpack_from(barray, offset=0)
         self.total = self.__class__.st_package.size + self.length
