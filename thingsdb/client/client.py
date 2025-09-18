@@ -5,7 +5,7 @@ import ssl
 import time
 from collections import defaultdict
 from ssl import SSLContext, PROTOCOL_TLS
-from typing import Optional, Union, Any, List, Tuple
+from typing import Any
 from concurrent.futures import CancelledError
 from .buildin import Buildin
 from .protocol import Proto, Protocol, ProtocolWS
@@ -21,8 +21,8 @@ class Client(Buildin):
     def __init__(
             self,
             auto_reconnect: bool = True,
-            ssl: Optional[Union[bool, ssl.SSLContext]] = None,
-            loop: Optional[asyncio.AbstractEventLoop] = None,
+            ssl: bool | ssl.SSLContext | None = None,
+            loop: asyncio.AbstractEventLoop | None = None,
     ) -> None:
         """Initialize a ThingsDB client.
 
@@ -145,8 +145,8 @@ class Client(Buildin):
 
     def connect_pool(
             self,
-            pool: List[Union[str, Tuple[str, int]]],
-            *auth: Union[str, Tuple[str, str]]
+            pool: list[str | tuple[str, int]],
+            *auth: str | tuple[str, str]
     ) -> asyncio.Future[None]:
         """Connect using a connection pool.
 
@@ -201,7 +201,7 @@ class Client(Buildin):
             self,
             host: str,
             port: int = 9200,
-            timeout: Optional[int] = 5):
+            timeout: int | None = 5):
         """Connect to ThingsDB.
 
         This method will *only* create a connection, so the connection is not
@@ -237,7 +237,7 @@ class Client(Buildin):
         self._pool_idx = 0
         await self._connect(timeout=timeout)
 
-    def reconnect(self) -> Optional[asyncio.Future[Any]]:
+    def reconnect(self) -> asyncio.Future[Any] | None:
         """Re-connect to ThingsDB.
 
         This method can be used, even when a connection still exists. In case
@@ -274,8 +274,8 @@ class Client(Buildin):
 
     async def authenticate(
             self,
-            *auth: Union[str, tuple],
-            timeout: Optional[int] = 5
+            *auth: str | tuple[str, str],
+            timeout: int | None = 5
     ) -> None:
         """Authenticate a ThingsDB connection.
 
@@ -298,8 +298,8 @@ class Client(Buildin):
     def query(
             self,
             code: str,
-            scope: Optional[str] = None,
-            timeout: Optional[int] = None,
+            scope: str | None = None,
+            timeout: int | None = None,
             skip_strip_code: bool = False,
             **kwargs: Any
     ) -> asyncio.Future[Any]:
@@ -363,7 +363,7 @@ class Client(Buildin):
             tp: Proto,
             data: Any = None,
             is_bin: bool = False,
-            timeout: Optional[int] = None
+            timeout: int | None = None
     ) -> asyncio.Future[Any]:
         if not self._pool:
             raise ConnectionError('no connection')
@@ -400,7 +400,7 @@ class Client(Buildin):
             tp: Proto,
             data: Any = None,
             is_bin: bool = False,
-            timeout: Optional[int] = None
+            timeout: int | None = None
     ) -> asyncio.Future[Any]:
         if not self.is_connected():
             raise ConnectionError('no connection')
@@ -410,9 +410,9 @@ class Client(Buildin):
     def run(
             self,
             procedure: str,
-            *args: Optional[Any],
-            scope: Optional[str] = None,
-            timeout: Optional[int] = None,
+            *args: Any,
+            scope: str | None = None,
+            timeout: int | None = None,
             **kwargs: Any,
     ) -> asyncio.Future[Any]:
         """Run a procedure.
@@ -470,10 +470,10 @@ class Client(Buildin):
 
     async def _emit(
             self,
-            room_id: Union[int, str],
+            room_id: int | str,
             event: str,
-            *args: Optional[Any],
-            scope: Optional[str] = None):
+            *args: Any,
+            scope: str | None = None):
         """Emit an event.
 
         Use Room(room_id, scope=scope).emit(..) instead of this function to
@@ -502,9 +502,9 @@ class Client(Buildin):
             scope = self._scope
         await self._write_pkg(Proto.REQ_EMIT, [scope, room_id, event, *args])
 
-    def _join(self, *ids: Union[int, str],
-              scope: Optional[str] = None
-              ) -> asyncio.Future[List[Optional[int]]]:
+    def _join(self, *ids: int | str,
+              scope: str | None = None
+              ) -> asyncio.Future[list[int | None]]:
         """Join one or more rooms.
 
         Args:
@@ -532,9 +532,9 @@ class Client(Buildin):
 
         return self._write_pkg(Proto.REQ_JOIN, [scope, *ids])  # type: ignore
 
-    def _leave(self, *ids: Union[int, str],
-               scope: Optional[str] = None
-               ) -> asyncio.Future[List[Optional[int]]]:
+    def _leave(self, *ids: int | str,
+               scope: str | None = None
+               ) -> asyncio.Future[list[int | None]]:
         """Leave one or more rooms.
 
         Stop receiving events for the rooms given by one or more ids. It is
@@ -584,7 +584,7 @@ class Client(Buildin):
     def _is_websocket_host(host):
         return host.startswith('ws://') or host.startswith('wss://')
 
-    async def _connect(self, timeout: Optional[int] = 5):
+    async def _connect(self, timeout: int | None = 5):
         if not self._pool:
             return
         host, port = self._pool[self._pool_idx]
