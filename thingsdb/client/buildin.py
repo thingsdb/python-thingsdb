@@ -1,8 +1,6 @@
 import asyncio
 import datetime
-from abc import ABC, abstractmethod
-from typing import Union as U
-from typing import Optional
+from abc import abstractmethod
 from typing import Any
 
 
@@ -15,13 +13,13 @@ class Buildin:
     def query(
             self,
             code: str,
-            scope: Optional[str] = None,
-            timeout: Optional[int] = None,
+            scope: str | None = None,
+            timeout: int | None = None,
             skip_strip_code: bool = False,
             **kwargs: Any) -> asyncio.Future[Any]:
         ...
 
-    async def collection_info(self, collection: U[int, str]) -> dict:
+    async def collection_info(self, collection: int | str) -> dict:
         """Returns information about a specific collection.
 
         This function requires QUERY privileges on the requested collection,
@@ -39,7 +37,7 @@ class Buildin:
         """
         return await self.query('collections_info()', scope='@t')
 
-    async def del_collection(self, collection: U[int, str]):
+    async def del_collection(self, collection: int | str):
         """Delete a collection.
 
         This function generates a change.
@@ -104,7 +102,7 @@ class Buildin:
     async def deploy_module(
             self,
             name: str,
-            data: Optional[U[bytes, str]] = None):
+            data: bytes | str | None = None):
         """Deploy a module on all nodes.
 
         The module must be configured first, using the new_module() function.
@@ -127,7 +125,7 @@ class Buildin:
             data=data,
             scope='@t')
 
-    async def grant(self, target: U[int, str], user: str, mask: int):
+    async def grant(self, target: int | str, user: str, mask: int):
         """Grant, collection or general, privileges to a user.
 
         Access to a user is provided by setting a bit mask to either the @node,
@@ -224,7 +222,7 @@ class Buildin:
             self,
             name: str,
             source: str,
-            configuration: Optional[Any] = None):
+            configuration: Any = None):
         """Creates (and configures) a new module for ThingsDB.
 
         This function generates a change."""
@@ -239,7 +237,7 @@ class Buildin:
             self,
             secret: str,
             name: str,
-            port: Optional[int] = 9220) -> int:
+            port: int | None = 9220) -> int:
         """Adds a new node to ThingsDB.
 
         This function generates a change."""
@@ -253,7 +251,7 @@ class Buildin:
     async def new_token(
             self,
             user: str,
-            expiration_time: Optional[datetime.datetime] = None,
+            expiration_time: datetime.datetime | None = None,
             description: str = ''):
 
         ts = None if expiration_time is None \
@@ -285,7 +283,7 @@ class Buildin:
 
     async def rename_collection(
             self,
-            collection: U[int, str],
+            collection: int | str,
             new_name: str) -> None:
         return await self.query(
             'rename_collection(collection, new_name)',
@@ -310,14 +308,14 @@ class Buildin:
     async def restore(
             self,
             filename: str,
-            options: Optional[dict] = {}):
+            options: dict[str, Any] | None = {}):
         return await self.query(
             'restore(filename, options)',
             filename=filename,
             options=options,
             scope='@t')
 
-    async def revoke(self, target: U[int, str], user: str, mask: int):
+    async def revoke(self, target: int | str, user: str, mask: int):
         return await self.query(
             'revoke(target, user, mask)',
             target=target,
@@ -328,7 +326,7 @@ class Buildin:
     async def set_module_conf(
             self,
             name: str,
-            configuration: Optional[dict] = None):
+            configuration: dict[str, Any] | None = None):
         return await self.query(
             'set_module_conf(name, configuration)',
             name=name,
@@ -338,7 +336,7 @@ class Buildin:
     async def set_module_scope(
             self,
             name: str,
-            scope: U[str, None]):
+            scope: str | None):
         return await self.query(
             'set_module_scope(name, module_scope)',
             name=name,
@@ -346,14 +344,14 @@ class Buildin:
             scope='@t')
 
     async def set_password(self, user: str,
-                           new_password: Optional[str] = None) -> None:
+                           new_password: str | None = None) -> None:
         return await self.query(
             'set_password(user, new_password)',
             user=user,
             new_password=new_password,
             scope='@t')
 
-    async def set_time_zone(self, collection: U[int, str], zone: str):
+    async def set_time_zone(self, collection: int | str, zone: str):
         """By default each collection will be created with time zone UTC.
 
         This function can be used to change the time zone for a collection. If
@@ -378,7 +376,7 @@ class Buildin:
         """
         return await self.query('time_zones_info()', scope='@t')
 
-    async def user_info(self, user: Optional[str] = None) -> dict:
+    async def user_info(self, user: str | None = None) -> dict:
         if user is None:
             return await self.query('user_info()', scope='@t')
         return await self.query('user_info(user)', user=user, scope='@t')
@@ -419,9 +417,9 @@ class Buildin:
     async def new_backup(
             self,
             file_template: str,
-            start_ts: Optional[datetime.datetime] = None,
-            repeat: Optional[int] = 0,
-            max_files: Optional[int] = 7,
+            start_ts: datetime.datetime | None = None,
+            repeat: int | None = 0,
+            max_files: int | None = 7,
             scope='@n'):
 
         ts = None if start_ts is None else int(start_ts.timestamp())

@@ -1,7 +1,6 @@
 import abc
 import asyncio
 import logging
-from typing import Union, Optional
 from ..client import Client
 from ..client.protocol import Proto
 from ..util.is_name import is_name
@@ -19,8 +18,8 @@ class RoomBase(abc.ABC):
 
     def __init__(
             self,
-            room: Union[int, str],
-            scope: Optional[str] = None):
+            room: int | str,
+            scope: str | None = None):
         """Initializes a room.
 
         Args:
@@ -33,7 +32,7 @@ class RoomBase(abc.ABC):
                 Collection scope. If no scope is given, the scope will later
                 be set to the default client scope once the room is joined.
         """
-        self._client: Optional[Client] = None
+        self._client: Client | None = None
         self._id = room
         self._scope = scope
         self._wait_join = False
@@ -86,7 +85,7 @@ class RoomBase(abc.ABC):
                 raise TypeError(f'Id `{id}` is not a room')
             self._id = id
 
-    async def join(self, client: Client, wait: Optional[float] = 60.0):
+    async def join(self, client: Client, wait: float | None = 60.0):
         """Join a room.
 
         Args:
@@ -186,7 +185,7 @@ class RoomBase(abc.ABC):
                 'must call join(..) or no_join(..) before using emit')
         await self._client._emit(self._id, event, *args, scope=self._scope)
 
-    def _on_event(self, pkg) -> Optional[asyncio.Task]:
+    def _on_event(self, pkg) -> asyncio.Task | None:
         return self.__class__._ROOM_EVENT_MAP[pkg.tp](self, pkg.data)
 
     @abc.abstractmethod
@@ -219,7 +218,7 @@ class RoomBase(abc.ABC):
         finally:
             fut.set_result(None)
 
-    def _on_join(self, _data):
+    def _on_join(self, _data) -> asyncio.Task | None:
         if self._wait_join:
             # Future, the first join. Return a task so the room lock is kept
             # until the on_first_join is finished
