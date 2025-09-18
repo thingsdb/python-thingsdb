@@ -28,17 +28,16 @@ from ..exceptions import TypeError
 from ..exceptions import ValueError
 from ..exceptions import WriteUVError
 from ..exceptions import ZeroDivisionError
+
 try:
     import websockets
-    from websockets.client import connect  # type: ignore
-    from websockets.client import WebSocketClientProtocol  # type: ignore
+    from websockets import connect  # type: ignore
+    from websockets import ClientProtocol  # type: ignore
     from websockets.exceptions import ConnectionClosed  # type: ignore
 except (ImportError, ModuleNotFoundError):
     websockets = None
     connect = None
 
-    class WebSocketClientProtocol:
-        pass
 
     class ConnectionClosed(Exception):
         pass
@@ -368,7 +367,7 @@ class ProtocolWS(_Protocol):
                 'missing `websockets` module; '
                 'please install the `websockets` module: '
                 '\n\n  pip install websockets\n\n')
-        self._proto: Optional[WebSocketClientProtocol] = None
+        self._proto: Optional[ClientProtocol] = None
         self._is_closing = False
 
     async def connect(self, uri, ssl: Optional[SSLContext]):
