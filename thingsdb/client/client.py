@@ -380,7 +380,7 @@ class Client(Buildin):
             try:
                 assert self._protocol  # we're connected
                 res = await self._protocol.write(tp, data, is_bin, timeout)
-            except (asyncio.exceptions.CancelledError,
+            except (asyncio.CancelledError,
                     CancelledError, NodeError, AuthError) as e:
                 if timeout and time.time() - start > timeout:
                     msg = str(e) or type(e).__name__

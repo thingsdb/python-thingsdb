@@ -13,6 +13,7 @@ WEBSOCKET_MAX_SIZE = 2**24  # default from websocket is 2**20
 
 
 class ProtocolWS(BaseProtocol):
+
     """More a wrapper than a true protocol."""
     def __init__(
         self,
