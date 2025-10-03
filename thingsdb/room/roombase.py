@@ -1,9 +1,14 @@
 import abc
 import asyncio
 import logging
+from typing import Callable, TypeVar, ParamSpec
 from ..client import Client
 from ..client.protocol import Proto
 from ..util.is_name import is_name
+
+
+P = ParamSpec('P')
+R = TypeVar('R')
 
 
 class RoomBase(abc.ABC):
@@ -261,9 +266,9 @@ class RoomBase(abc.ABC):
     }
 
     @staticmethod
-    def event(event: str):
-        def wrapped(fun):
-            fun._event = event
+    def event(event: str) -> Callable[[Callable[P, R]], Callable[P, R]]:
+        def wrapped(fun: Callable[P, R]) -> Callable[P, R]:
+            setattr(fun, '_event', event)
             return fun
 
         return wrapped
