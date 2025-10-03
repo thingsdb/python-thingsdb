@@ -18,8 +18,8 @@ class RoomBase(abc.ABC):
 
         for key, val in cls.__dict__.items():
             if not key.startswith('__') and \
-                    callable(val) and hasattr(val, '_event'):
-                cls._event_handlers[val._event] = val  # type: ignore
+                    callable(val) and hasattr(val, '_ti_event_'):
+                cls._event_handlers[getattr(val, '_ti_event_')] = val
 
     def __init__(
             self,
@@ -268,7 +268,7 @@ class RoomBase(abc.ABC):
     @staticmethod
     def event(event: str) -> Callable[[Callable[P, R]], Callable[P, R]]:
         def wrapped(fun: Callable[P, R]) -> Callable[P, R]:
-            setattr(fun, '_event', event)
+            setattr(fun, '_ti_event_', event)
             return fun
 
         return wrapped
