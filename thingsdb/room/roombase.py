@@ -233,8 +233,8 @@ class RoomBase(abc.ABC):
             # join is (again) finished
             return asyncio.create_task(self.on_join())
         else:
-            # User has decided not to wait for the join. Thus we can asume that
-            # event handlers do not depend on the on_join to be finished
+            # User has decided not to wait for the join. Thus we can assume
+            # that event handlers do not depend on the on_join to be finished
             assert self._wait_join is False
             assert self._client
             loop = self._client.get_event_loop()
