@@ -671,7 +671,7 @@ class Client(Buildin):
                     await self._connect(timeout=timeout)
                     await self._ping(timeout=2)
                     await self._authenticate(timeout=5)
-                    await self._rejoin()
+                    await asyncio.wait_for(self._rejoin(), timeout=5)
                 except Exception as e:
                     name = host if self._is_websocket_host(host) else \
                         f'{host}:{port}'
