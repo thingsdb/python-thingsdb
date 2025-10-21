@@ -1,7 +1,7 @@
 import abc
 import asyncio
 import logging
-from typing import Callable, TypeVar, ParamSpec
+from typing import Callable, TypeVar, ParamSpec, Any, TypedDict
 from ..client import Client
 from ..client.protocol import Proto
 from ..util.is_name import is_name
@@ -11,10 +11,15 @@ P = ParamSpec('P')
 R = TypeVar('R')
 
 
+class _TEvent(TypedDict):
+    event: str
+    args: list[Any]
+
+
 class RoomBase(abc.ABC):
 
     def __init_subclass__(cls):
-        cls._event_handlers = {}
+        cls._event_handlers: dict[str, Callable[[Any], object]] = {}
 
         for key, val in cls.__dict__.items():
             if not key.startswith('__') and \
@@ -223,7 +228,7 @@ class RoomBase(abc.ABC):
         finally:
             fut.set_result(None)
 
-    def _on_join(self, _data) -> asyncio.Task | None:
+    def _on_join(self, _data: Any) -> asyncio.Task[None] | None:
         if self._wait_join:
             # Future, the first join. Return a task so the room lock is kept
             # until the on_first_join is finished
@@ -240,7 +245,7 @@ class RoomBase(abc.ABC):
             loop = self._client.get_event_loop()
             asyncio.ensure_future(self.on_join(), loop=loop)
 
-    def _on_stop(self, func):
+    def _on_stop(self, func: Callable[[], None]):
         try:
             assert self._client
             del self._client._rooms[self._id]
@@ -248,7 +253,7 @@ class RoomBase(abc.ABC):
             pass
         func()
 
-    def _emit_handler(self, data):
+    def _emit_handler(self, data: _TEvent):
         cls = self.__class__
         event = data['event']
         try:

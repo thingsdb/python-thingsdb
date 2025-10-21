@@ -19,7 +19,7 @@ class Buildin:
             **kwargs: Any) -> asyncio.Future[Any]:
         ...
 
-    async def collection_info(self, collection: int | str) -> dict:
+    async def collection_info(self, collection: int | str) -> dict[str, Any]:
         """Returns information about a specific collection.
 
         This function requires QUERY privileges on the requested collection,
@@ -32,7 +32,7 @@ class Buildin:
             collection=collection,
             scope='@t')
 
-    async def collections_info(self) -> list:
+    async def collections_info(self) -> list[dict[str, Any]]:
         """Returns collection information about all collections in ThingsDB.
         """
         return await self.query('collections_info()', scope='@t')
@@ -205,10 +205,10 @@ class Buildin:
         """
         return await self.query('has_user(name)', name=name, scope='@t')
 
-    async def module_info(self, name: str) -> dict:
+    async def module_info(self, name: str) -> dict[str, Any]:
         return await self.query('module_info(name)', name=name, scope='@t')
 
-    async def modules_info(self) -> list:
+    async def modules_info(self) -> list[dict[str, Any]]:
         return await self.query('modules_info()', scope='@t')
 
     async def new_collection(self, name: str):
@@ -369,49 +369,49 @@ class Buildin:
             zone=zone,
             scope='@t')
 
-    async def time_zones_info(self) -> list:
+    async def time_zones_info(self) -> list[str]:
         """Returns all available time zones in ThingsDB.
 
         This function does not generate a change.
         """
         return await self.query('time_zones_info()', scope='@t')
 
-    async def user_info(self, user: str | None = None) -> dict:
+    async def user_info(self, user: str | None = None) -> dict[str, Any]:
         if user is None:
             return await self.query('user_info()', scope='@t')
         return await self.query('user_info(user)', user=user, scope='@t')
 
-    async def users_info(self) -> list:
+    async def users_info(self) -> list[dict[str, Any]]:
         return await self.query('users_info()', scope='@t')
 
     #
     # Build-in functions from the @node scope
     #
 
-    async def backup_info(self, backup_id: int, scope='@n'):
+    async def backup_info(self, backup_id: int, scope: str = '@n'):
         return await self.query('backup_info(id)', id=backup_id, scope=scope)
 
-    async def backups_info(self, scope='@n') -> list:
+    async def backups_info(self, scope: str = '@n') -> list[dict[str, Any]]:
         return await self.query('backups_info()', scope=scope)
 
-    async def backups_ok(self, scope='@n') -> bool:
+    async def backups_ok(self, scope: str = '@n') -> bool:
         return await self.query('backups_ok()', scope=scope)
 
-    async def counters(self, scope='@n'):
+    async def counters(self, scope: str = '@n'):
         return await self.query('counters()', scope=scope)
 
     async def del_backup(
             self,
             backup_id: int,
             delete_files: bool = False,
-            scope='@n'):
+            scope: str = '@n'):
         return await self.query(
             'del_backup(id, delete_files)',
             id=backup_id,
             delete_files=delete_files,
             scope=scope)
 
-    async def has_backup(self, backup_id: int, scope='@n'):
+    async def has_backup(self, backup_id: int, scope: str = '@n'):
         return await self.query('has_backup(id)', id=backup_id, scope=scope)
 
     async def new_backup(
@@ -420,7 +420,7 @@ class Buildin:
             start_ts: datetime.datetime | None = None,
             repeat: int | None = 0,
             max_files: int | None = 7,
-            scope='@n'):
+            scope: str = '@n'):
 
         ts = None if start_ts is None else int(start_ts.timestamp())
 
@@ -435,13 +435,13 @@ class Buildin:
             max_files=max_files,
             scope=scope)
 
-    async def node_info(self, scope='@n') -> dict:
+    async def node_info(self, scope: str = '@n') -> dict[str, Any]:
         return await self.query('node_info()', scope=scope)
 
-    async def nodes_info(self, scope='@n') -> list:
+    async def nodes_info(self, scope: str = '@n') -> list[dict[str, Any]]:
         return await self.query('nodes_info()', scope=scope)
 
-    async def reset_counters(self, scope='@n') -> None:
+    async def reset_counters(self, scope: str = '@n') -> None:
         """Resets the counters for the ThingsDB node you are connected too.
 
         Other nodes are not affected. This will set the started_at counter
@@ -462,7 +462,7 @@ class Buildin:
         """
         return await self.query('restart_module(name)', name=name, scope='@t')
 
-    async def set_log_level(self, log_level: str, scope='@n') -> None:
+    async def set_log_level(self, log_level: str, scope: str = '@n') -> None:
         level = (
             'DEBUG',
             'INFO',
@@ -472,7 +472,7 @@ class Buildin:
         return await self.query(
             'set_log_level(log_level)', log_level=level, scope=scope)
 
-    async def shutdown(self, scope='@n') -> None:
+    async def shutdown(self, scope: str = '@n') -> None:
         """Shutdown the node in the selected scope.
 
         This is a clean shutdown, allowing all other nodes (and clients) to
