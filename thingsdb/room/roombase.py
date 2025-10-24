@@ -176,7 +176,7 @@ class RoomBase(abc.ABC):
         if res[0] is None:
             raise LookupError(f'room Id {self._id} is not found (anymore)')
 
-    async def emit(self, event: str, *args):
+    async def emit(self, event: str, *args, peers_only: bool = False):
         """Emit an event.
 
         Args:
@@ -193,7 +193,9 @@ class RoomBase(abc.ABC):
         if self._client is None:
             raise RuntimeError(
                 'must call join(..) or no_join(..) before using emit')
-        await self._client._emit(self._id, event, *args, scope=self._scope)
+        await self._client._emit(self._id, event, *args,
+                                 scope=self._scope,
+                                 peers_only=peers_only)
 
     def _on_event(self, pkg) -> asyncio.Task | None:
         return self.__class__._ROOM_EVENT_MAP[pkg.tp](self, pkg.data)

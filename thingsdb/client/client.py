@@ -473,7 +473,8 @@ class Client(Buildin):
             room_id: int | str,
             event: str,
             *args: Any,
-            scope: str | None = None):
+            scope: str | None = None,
+            peers_only: bool = False):
         """Emit an event.
 
         Use Room(room_id, scope=scope).emit(..) instead of this function to
@@ -500,7 +501,8 @@ class Client(Buildin):
         """
         if scope is None:
             scope = self._scope
-        await self._write_pkg(Proto.REQ_EMIT, [scope, room_id, event, *args])
+        proto = Proto.REQ_EMIT_PEER if peers_only else Proto.REQ_EMIT
+        await self._write_pkg(proto, [scope, room_id, event, *args])
 
     def _join(self, *ids: int | str,
               scope: str | None = None

@@ -52,6 +52,7 @@ class Proto(enum.IntEnum):
     REQ_JOIN = 0x26
     REQ_LEAVE = 0x27
     REQ_EMIT = 0x28
+    REQ_EMIT_PEER = 0x29
 
 
 class Err(enum.IntEnum):

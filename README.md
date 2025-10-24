@@ -572,7 +572,7 @@ Leave the room. If the room is not found, a `LookupError` will be raised.
 ### emit
 
 ```python
-Room().emit(event: str, *args: Any) -> asyncio.Future
+Room().emit(event: str, *args: Any, peers_only: bool = False) -> asyncio.Future
 ```
 
 Emit an event to a room.
@@ -583,6 +583,11 @@ Emit an event to a room.
     Name of the event to emit.
 - *\*args (any)*:
     Additional argument to send with the event.
+- *peers_only (bool)*:
+    If `True`, the event will only be sent to other
+    listeners (peers) and will not be echoed back to the
+    sender. Defaults to `False`, which sends to all
+    _(requires ThingsDB v1.7.7 or higher)_.
 
 #### Returns
 
