@@ -3,12 +3,12 @@ import logging
 from typing import Any, Callable
 from .package import Package
 from .baseprotocol import BaseProtocol
-from .baseprotocol import Proto  # noqa: F401
+from .baseprotocol import Proto  # type: ignore # noqa: F401
 try:
     from .wsprotocol import ProtocolWS  # type: ignore
 except (ImportError, ModuleNotFoundError):
     class ProtocolWS(BaseProtocol):
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args: Any, **kwargs: Any):
             raise ImportError(
                 'missing `websockets` module; '
                 'please install the `websockets` module: '
@@ -30,14 +30,14 @@ class Protocol(BaseProtocol, asyncio.Protocol):
         self.loop = asyncio.get_running_loop() if loop is None else loop
         self.close_future: asyncio.Future[Any] | None = None
 
-    def connection_made(self, transport):
+    def connection_made(self, transport: asyncio.BaseTransport):
         '''
         override asyncio.Protocol
         '''
         self.close_future = self.loop.create_future()
         self.transport = transport
 
-    def connection_lost(self, exc) -> None:
+    def connection_lost(self, exc: Exception | None) -> None:
         '''
         override asyncio.Protocol
         '''

@@ -1,3 +1,4 @@
+from __future__ import annotations
 import asyncio
 import logging
 import random
@@ -5,12 +6,15 @@ import ssl
 import time
 from collections import defaultdict
 from ssl import SSLContext, PROTOCOL_TLS
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from concurrent.futures import CancelledError
 from .buildin import Buildin
 from .protocol import Proto, Protocol, ProtocolWS
 from ..exceptions import NodeError, AuthError
 from ..util import strip_code
+if TYPE_CHECKING:
+    from ..room.roombase import RoomBase
+    from ..client.package import Package
 
 
 class Client(Buildin):
@@ -54,7 +58,7 @@ class Client(Buildin):
         self._scope = '@t'  # default to thingsdb scope
         self._pool_idx = 0
         self._reconnecting = False
-        self._rooms = dict()
+        self._rooms: dict[int, RoomBase] = dict()
         self._rooms_lock = asyncio.Lock()
 
         if ssl is True:
@@ -64,7 +68,7 @@ class Client(Buildin):
         else:
             self._ssl = ssl
 
-    def get_rooms(self):
+    def get_rooms(self) -> tuple[RoomBase, ...]:
         """Can be used to get the rooms which are joined.
 
         Returns:
@@ -185,12 +189,18 @@ class Client(Buildin):
         assert self._reconnecting is False
         assert len(pool), 'pool must contain at least one node'
         if len(auth) == 1:
-            auth = auth[0]  # type: ignore
+            _auth = auth[0]  # token or tuple[str, str]
+        elif len(auth) == 2 and \
+                isinstance(auth[0], str) and \
+                isinstance(auth[1], str):
+            _auth = (auth[0], auth[1])  # username/password
+        else:
+            raise TypeError('wrong or missing authentication arguments')
 
         self._pool = tuple((
             (address, 9200) if isinstance(address, str) else address
             for address in pool))
-        self._auth = self._auth_check(auth)
+        self._auth = self._auth_check(_auth)
         self._pool_idx = random.randint(0, len(pool) - 1)
         fut = self.reconnect()
         if fut is None:
@@ -291,8 +301,15 @@ class Client(Buildin):
                 wait forever on a response. Defaults to 5.
         """
         if len(auth) == 1:
-            auth = auth[0]  # type: ignore
-        self._auth = self._auth_check(auth)
+            _auth = auth[0]  # token or tuple[str, str]
+        elif len(auth) == 2 and \
+                isinstance(auth[0], str) and \
+                isinstance(auth[1], str):
+            _auth = (auth[0], auth[1])  # username/password
+        else:
+            raise TypeError('wrong or missing authentication arguments')
+
+        self._auth = self._auth_check(_auth)
         await self._authenticate(timeout)
 
     def query(
@@ -568,7 +585,7 @@ class Client(Buildin):
         return self._write_pkg(Proto.REQ_LEAVE, [scope, *ids])  # type: ignore
 
     @staticmethod
-    def _auth_check(auth):
+    def _auth_check(auth: str | tuple[str, str]) -> str | tuple[str, str]:
         assert ((
             isinstance(auth, (list, tuple)) and
             len(auth) == 2 and
@@ -583,7 +600,7 @@ class Client(Buildin):
         return auth
 
     @staticmethod
-    def _is_websocket_host(host):
+    def _is_websocket_host(host: str) -> bool:
         return host.startswith('ws://') or host.startswith('wss://')
 
     async def _connect(self, timeout: int | None = 5):
@@ -615,7 +632,7 @@ class Client(Buildin):
             self._pool_idx += 1
             self._pool_idx %= len(self._pool)
 
-    async def _on_room(self, room_id, pkg):
+    async def _on_room(self, room_id: int, pkg: Package):
         async with self._rooms_lock:
             try:
                 room = self._rooms[room_id]
@@ -628,8 +645,9 @@ class Client(Buildin):
                 if isinstance(task, asyncio.Task):
                     await task
 
-    def _on_event(self, pkg):
+    def _on_event(self, pkg: Package):
         if pkg.tp == Proto.ON_NODE_STATUS:
+            assert pkg.data is not None
             status, node_id = pkg.data['status'], pkg.data['id']
 
             if self._reconnect and status == 'SHUTTING_DOWN':
@@ -654,7 +672,7 @@ class Client(Buildin):
             asyncio.ensure_future(self._on_room(room_id, pkg),
                                   loop=self.get_event_loop())
 
-    def _on_connection_lost(self, protocol, exc):
+    def _on_connection_lost(self, protocol: asyncio.Protocol, exc: Exception):
         if self._protocol is not protocol:
             return
         self._protocol = None
@@ -695,20 +713,23 @@ class Client(Buildin):
         finally:
             self._reconnecting = False
 
-    def _ping(self, timeout):
-        return self._write(Proto.REQ_PING, timeout=timeout)
+    async def _ping(self, timeout: int | None):
+        return await self._write(Proto.REQ_PING, timeout=timeout)
 
-    def _authenticate(self, timeout):
-        return self._write(Proto.REQ_AUTH, data=self._auth, timeout=timeout)
+    async def _authenticate(self, timeout: int | None) -> asyncio.Future[Any]:
+        return await self._write(
+            Proto.REQ_AUTH,
+            data=self._auth,
+            timeout=timeout)
 
     async def _rejoin(self):
         if not self._rooms:
             return  # do nothig if no rooms are used
 
         # re-arrange the rooms per scope to combine joins in a less requests
-        scopes = defaultdict(list)
+        scopes: dict[str, list[int]] = defaultdict(list)
         for room in self._rooms.values():
-            if room.id:
+            if room.id and room.scope:
                 scopes[room.scope].append(room.id)
 
         # join request per scope, each for one or more rooms

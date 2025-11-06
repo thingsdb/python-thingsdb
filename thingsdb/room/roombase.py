@@ -1,10 +1,13 @@
+from __future__ import annotations
 import abc
 import asyncio
 import logging
-from typing import Callable, TypeVar, ParamSpec, Any, TypedDict
+from typing import Callable, TypeVar, ParamSpec, Any, TypedDict, TYPE_CHECKING
 from ..client import Client
 from ..client.protocol import Proto
 from ..util.is_name import is_name
+if TYPE_CHECKING:
+    from ..client.package import Package
 
 
 P = ParamSpec('P')
@@ -45,7 +48,7 @@ class RoomBase(abc.ABC):
         self._client: Client | None = None
         self._id = room
         self._scope = scope
-        self._wait_join = False
+        self._wait_join: bool | asyncio.Future[None] | None = False
 
     @property
     def id(self):
@@ -176,7 +179,7 @@ class RoomBase(abc.ABC):
         if res[0] is None:
             raise LookupError(f'room Id {self._id} is not found (anymore)')
 
-    async def emit(self, event: str, *args, peers_only: bool = False):
+    async def emit(self, event: str, *args: Any, peers_only: bool = False):
         """Emit an event.
 
         Args:
@@ -197,7 +200,7 @@ class RoomBase(abc.ABC):
                                  scope=self._scope,
                                  peers_only=peers_only)
 
-    def _on_event(self, pkg) -> asyncio.Task | None:
+    def _on_event(self, pkg: Package) -> asyncio.Task[None] | None:
         return self.__class__._ROOM_EVENT_MAP[pkg.tp](self, pkg.data)
 
     @abc.abstractmethod
@@ -213,7 +216,11 @@ class RoomBase(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def on_emit(self, event: str, *args) -> None:
+    def on_delete(self) -> None:
+        pass
+
+    @abc.abstractmethod
+    def on_emit(self, event: str, *arg: Any) -> None:
         pass
 
     async def _on_first_join(self):
@@ -250,7 +257,8 @@ class RoomBase(abc.ABC):
     def _on_stop(self, func: Callable[[], None]):
         try:
             assert self._client
-            del self._client._rooms[self._id]
+            if isinstance(self._id, int):
+                del self._client._rooms[self._id]
         except KeyError:
             pass
         func()
@@ -265,7 +273,9 @@ class RoomBase(abc.ABC):
         else:
             fun(self, *data['args'])
 
-    _ROOM_EVENT_MAP = {
+    _ROOM_EVENT_MAP: dict[
+            Proto,
+            Callable[[RoomBase, Any], asyncio.Task[None] | None]] = {
         Proto.ON_ROOM_EMIT: _emit_handler,
         Proto.ON_ROOM_JOIN: _on_join,
         Proto.ON_ROOM_LEAVE: lambda s, _: s._on_stop(s.on_leave),

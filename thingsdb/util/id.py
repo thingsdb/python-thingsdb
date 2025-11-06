@@ -1,7 +1,8 @@
 import warnings
+from typing import Any
 
 
-def id(val):
+def id(val: str | dict[str, Any]) -> int | None:
     warnings.warn(
         "do not use this function as it is not compatible with named Ids",
         DeprecationWarning,

@@ -1,3 +1,4 @@
+from __future__ import annotations
 import asyncio
 import logging
 from ssl import SSLContext
@@ -24,7 +25,7 @@ class ProtocolWS(BaseProtocol):
         self._proto: ClientConnection | None = None
         self._is_closing = False
 
-    async def connect(self, uri, ssl: SSLContext | None):
+    async def connect(self, uri: str, ssl: SSLContext | None) -> ProtocolWS:
         assert connect, 'websockets required, please install websockets'
         self._proto = await connect(uri, ssl=ssl, max_size=WEBSOCKET_MAX_SIZE)
         asyncio.create_task(self._recv_loop())

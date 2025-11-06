@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 from .roombase import RoomBase
 
 
@@ -48,7 +49,7 @@ class Room(RoomBase):
         """
         pass
 
-    def on_emit(self, event: str, *args):
+    def on_emit(self, event: str, *args: Any):
         """On emit
         Called when no event handler is configured for the event.
         """

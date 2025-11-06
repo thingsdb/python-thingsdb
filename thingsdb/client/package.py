@@ -1,6 +1,7 @@
 import struct
 import msgpack
 import logging
+from typing import Any
 
 
 _fail_file = ''
@@ -30,7 +31,7 @@ class Package(object):
         self.length, self.pid, self.tp, self.checkbit = \
             self.__class__.st_package.unpack_from(barray, offset=0)
         self.total = self.__class__.st_package.size + self.length
-        self.data = None
+        self.data: Any = None
 
     def _handle_fail_file(self, message: bytes):
         if _fail_file:

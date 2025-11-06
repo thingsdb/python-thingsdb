@@ -108,7 +108,9 @@ _ERRMAP = {
     Err.EX_INTERNAL: InternalError,
 }
 
-_PROTO_RESPONSE_MAP = {
+_PROTO_RESPONSE_MAP: dict[
+        Proto,
+        Callable[[asyncio.Future[None], Any], None]] = {
     Proto.RES_PING: lambda f, d: f.set_result(None),
     Proto.RES_OK: lambda f, d: f.set_result(None),
     Proto.RES_DATA: lambda f, d: f.set_result(d),
@@ -127,8 +129,8 @@ _PROTO_EVENTS = (
 )
 
 
-def proto_unknown(f, d):
-    f.set_exception(TypeError('unknown package type received ({})'.format(d)))
+def proto_unknown(f: asyncio.Future[None], d: Any):
+    f.set_exception(TypeError(f'unknown package type received ({d})'))
 
 
 class BaseProtocol:
@@ -136,7 +138,11 @@ class BaseProtocol:
             self,
             on_connection_lost: Callable[[asyncio.Protocol, Exception], None],
             on_event: Callable[[Package], None],):
-        self._requests = {}
+        self._requests: dict[
+            int,
+            tuple[
+                asyncio.Future[Any],
+                asyncio.Task[None] | None]] = {}
         self._pid = 0
         self._on_connection_lost = on_connection_lost
         self._on_event = on_event
@@ -144,7 +150,7 @@ class BaseProtocol:
     async def _timer(self, pid: int, timeout: int) -> None:
         await asyncio.sleep(timeout)
         try:
-            future, task = self._requests.pop(pid)
+            future, _task = self._requests.pop(pid)
         except KeyError:
             logging.error(f'Timed out package Id not found: {pid}')
             return None
@@ -194,9 +200,12 @@ class BaseProtocol:
         self._pid += 1
         self._pid %= 0x10000  # pid is handled as uint16_t
 
-        data = data if is_bin else b'' if data is None else \
+        data = (   # type: ignore
+            data if is_bin else b'' if data is None else \
             msgpack.packb(data, use_bin_type=True)
+        )
 
+        assert isinstance(data, bytes)
         header = Package.st_package.pack(
             len(data),
             self._pid,
@@ -208,7 +217,7 @@ class BaseProtocol:
         task = asyncio.ensure_future(
             self._timer(self._pid, timeout)) if timeout else None
 
-        future = asyncio.Future()
+        future: asyncio.Future[None] = asyncio.Future()
         self._requests[self._pid] = (future, task)
         return future
 

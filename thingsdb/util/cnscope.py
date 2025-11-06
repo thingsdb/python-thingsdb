@@ -1,7 +1,7 @@
 from .is_name import is_name
 
 
-def cnscope(scope):
+def cnscope(scope: str) -> str:
     """Returns the collection name from a scope name.
 
     Eexamples:

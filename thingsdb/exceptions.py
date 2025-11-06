@@ -1,4 +1,6 @@
 import asyncio
+from typing import TypedDict, Any
+
 
 _AssertionError = AssertionError
 _LookupError = LookupError
@@ -9,9 +11,13 @@ _ValueError = ValueError
 _TypeError = TypeError
 _CancelledError = asyncio.CancelledError
 
+class ErrData(TypedDict):
+    error_msg: str
+    error_code: int
+
 
 class ThingsDBError(Exception):
-    def __init__(self, *args, errdata=None):
+    def __init__(self, *args: Any, errdata: ErrData | None = None):
         if isinstance(errdata, dict):
             args = (errdata['error_msg'], )
             self.error_code = errdata['error_code']

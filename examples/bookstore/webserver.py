@@ -27,8 +27,9 @@ curl \
 """
 import asyncio
 from sys import argv
+from typing import TypedDict
 from functools import partial
-from aiohttp import web  # type: ignore
+from aiohttp import web
 from thingsdb.client import Client
 from thingsdb.room import Room, event
 
@@ -37,11 +38,14 @@ THINGSDB_COLLECTION = '//YOUR_COLLECTION'
 
 bookstore = None
 
+class Book(TypedDict):
+    title: str
+
 
 class BookStore(Room):
 
     def on_init(self):
-        self.books = []
+        self.books: list[Book] = []
         self.add_book = partial(self.client.run, 'add_book')
 
     async def on_join(self):
@@ -50,7 +54,7 @@ class BookStore(Room):
         """)
 
     @event('add-book')
-    def on_add_book(self, book):
+    def on_add_book(self, book: Book):
         self.books.append(book)
 
 
@@ -59,7 +63,7 @@ def on_cleanup():
     return client.wait_closed()
 
 
-async def add_book(request):
+async def add_book(request: web.Request):
     book = await request.json()
     # Use the procedure to add the book
     assert bookstore
@@ -68,17 +72,17 @@ async def add_book(request):
 
 
 # We have the books in memory, no need for a query
-async def get_books(request):
+async def get_books(request: web.Request):
     assert bookstore
     return web.json_response({
         "book_titles": [book['title'] for book in bookstore.books]
     })
 
 
-async def setup(client):
+async def setup(client: Client):
     global bookstore
 
-    await client.connect('playground.thingsdb.net', '9400')
+    await client.connect('playground.thingsdb.net', 9400)
     await client.authenticate(THINGSDB_AUTH_TOKEN)
 
     bookstore = BookStore("""//ti

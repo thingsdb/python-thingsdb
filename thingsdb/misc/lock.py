@@ -91,7 +91,7 @@ async def setup(client: Client, collection: str = 'lock'):
 
 class _InnerRoom(Room):
 
-    future: asyncio.Future
+    future: asyncio.Future[None]
 
     def on_init(self) -> None:
         self.future = asyncio.Future()

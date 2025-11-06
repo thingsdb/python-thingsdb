@@ -50,7 +50,6 @@ setup(
     ],
     install_requires=[
         'msgpack',
-        'deprecation'
     ],
     keywords='database connector',
 
