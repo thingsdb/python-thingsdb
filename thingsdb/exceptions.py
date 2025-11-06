@@ -11,6 +11,7 @@ _ValueError = ValueError
 _TypeError = TypeError
 _CancelledError = asyncio.CancelledError
 
+
 class ErrData(TypedDict):
     error_msg: str
     error_code: int

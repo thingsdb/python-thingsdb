@@ -201,7 +201,7 @@ class BaseProtocol:
         self._pid %= 0x10000  # pid is handled as uint16_t
 
         data = (   # type: ignore
-            data if is_bin else b'' if data is None else \
+            data if is_bin else b'' if data is None else
             msgpack.packb(data, use_bin_type=True)
         )
 

@@ -38,6 +38,7 @@ THINGSDB_COLLECTION = '//YOUR_COLLECTION'
 
 bookstore = None
 
+
 class Book(TypedDict):
     title: str
 
