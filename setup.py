@@ -1,6 +1,6 @@
 """
 Local testing:
-pip install -e .
+pip install -e . --config-settings editable_mode=strict
 
 Upload to PyPI
 
