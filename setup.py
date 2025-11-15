@@ -4,9 +4,9 @@ pip install -e .
 
 Upload to PyPI
 
-python setup.py sdist
-twine upload --repository pypitest dist/python_thingsdb-X.X.X.tar.gz
-twine upload --repository pypi dist/python_thingsdb-X.X.X.tar.gz
+python -m build
+twine upload --repository pypitest dist/python_thingsdb-X.X.X*
+twine upload --repository pypi dist/python_thingsdb-X.X.X*
 """
 from setuptools import setup, find_packages
 from thingsdb import __version__
