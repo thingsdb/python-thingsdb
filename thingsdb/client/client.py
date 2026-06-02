@@ -635,7 +635,6 @@ class Client(Buildin):
             self._pool_idx += 1
             self._pool_idx %= len(self._pool)
 
-
     async def _on_room(self, scope: str | None, room_id: int, pkg: Package):
         async with self._rooms_lock:
             try:
@@ -685,7 +684,6 @@ class Client(Buildin):
         else:
             asyncio.ensure_future(self._on_room(scope, room_id, pkg),
                                   loop=self.get_event_loop())
-
 
     def _on_connection_lost(self, protocol: asyncio.Protocol, exc: Exception):
         if self._protocol is not protocol:
