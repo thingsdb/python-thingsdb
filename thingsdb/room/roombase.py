@@ -6,6 +6,8 @@ from typing import Callable, TypeVar, ParamSpec, Any, TypedDict, TYPE_CHECKING
 from ..client import Client
 from ..client.protocol import Proto
 from ..util.is_name import is_name
+from ..util.cnscope import cnscope
+from ..util.fcscope import fcscope
 if TYPE_CHECKING:
     from ..client.package import Package
 
@@ -47,11 +49,13 @@ class RoomBase(abc.ABC):
         """
         self._client: Client | None = None
         self._id = room
-        self._scope = scope
+        self._key = None
+        self._scope = \
+            None if scope is None else f'@collection:{cnscope(scope)}'
         self._wait_join: bool | asyncio.Future[None] | None = False
 
     @property
-    def id(self):
+    def id(self) -> int | None:
         return self._id if isinstance(self._id, int) else None
 
     @property
@@ -72,7 +76,8 @@ class RoomBase(abc.ABC):
         """
         async with client._rooms_lock:
             if self._scope is None:
-                self._scope = client.get_default_scope()
+                scope = client.get_default_scope()
+                self._scope = f'@collection:{cnscope(scope)}'
             self._client = client
 
             if isinstance(self._id, str):
@@ -96,6 +101,7 @@ class RoomBase(abc.ABC):
                     '!is_err(try(room(id)));', id=id, scope=self._scope)
             if not is_room:
                 raise TypeError(f'Id `{id}` is not a room')
+            assert isinstance(id, int)
             self._id = id
 
     async def join(self, client: Client, wait: float | None = 60.0):
@@ -116,7 +122,9 @@ class RoomBase(abc.ABC):
         # is created inside the dict *before* the on_join is called.
         async with client._rooms_lock:
             if self._scope is None:
-                self._scope = client.get_default_scope()
+                scope = client.get_default_scope()
+                self._scope = f'@collection:{cnscope(scope)}'
+
             self._client = client
 
             if isinstance(self._id, str):
@@ -141,19 +149,23 @@ class RoomBase(abc.ABC):
                         f'the room Id has been returned using the ThingsDB '
                         f'code `{code}` using scope `{self._scope}`')
                 self._id = id
+                assert isinstance(self._id, int)
             else:
                 assert isinstance(self._id, int)
                 res = await client._join(self._id, scope=self._scope)
                 if res[0] is None:
                     raise LookupError(f'room with Id {self._id} not found')
 
-            if self._id in client._rooms:
-                prev = client._rooms[self._id]
+            self._scope = fcscope(self._scope)
+            try:
+                prev = client._rooms[self._scope][self._id]
                 logging.warning(
-                    f'Room Id {self._id} is previously registered by {prev} '
+                    f'Room Id {self._key} is previously registered by {prev} '
                     f'and will be overwritten with {self}')
+            except KeyError:
+                pass
 
-            client._rooms[self._id] = self
+            client._rooms[self._scope][self._id] = self
             self.on_init()
             if wait:
                 self._wait_join = asyncio.Future()
@@ -255,12 +267,16 @@ class RoomBase(abc.ABC):
             asyncio.ensure_future(self.on_join(), loop=loop)
 
     def _on_stop(self, func: Callable[[], None]):
-        try:
-            assert self._client
-            if isinstance(self._id, int):
-                del self._client._rooms[self._id]
-        except KeyError:
-            pass
+        assert self._client
+        if isinstance(self._id, int) and isinstance(self._scope, str):
+            rooms = self._client._rooms.get(self._scope)
+            if rooms is not None:
+                try:
+                    del rooms[self._id]
+                except KeyError:
+                    pass
+            if not rooms:
+                del self._client._rooms[self._scope]
         func()
 
     def _emit_handler(self, data: _TEvent):

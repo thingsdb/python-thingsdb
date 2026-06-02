@@ -58,7 +58,7 @@ class Client(Buildin):
         self._scope = '@t'  # default to thingsdb scope
         self._pool_idx = 0
         self._reconnecting = False
-        self._rooms: dict[int, RoomBase] = dict()
+        self._rooms: dict[str, dict[int, RoomBase]] = defaultdict(dict)
         self._rooms_lock = asyncio.Lock()
 
         if ssl is True:
@@ -74,7 +74,10 @@ class Client(Buildin):
         Returns:
             a tuple with unique Room instances.
         """
-        return tuple(self._rooms.values())
+        total: list[RoomBase] = []
+        for rooms in self._rooms.values():
+            total.extend(rooms.values())
+        return tuple(total)
 
     def get_event_loop(self) -> asyncio.AbstractEventLoop:
         """Can be used to get the event loop.
@@ -632,10 +635,20 @@ class Client(Buildin):
             self._pool_idx += 1
             self._pool_idx %= len(self._pool)
 
-    async def _on_room(self, room_id: int, pkg: Package):
+
+    async def _on_room(self, scope: str | None, room_id: int, pkg: Package):
         async with self._rooms_lock:
             try:
-                room = self._rooms[room_id]
+                if scope is None:
+                    # Fallback for ThingsDB < 1.8.6
+                    for rooms in self._rooms.values():
+                        room = rooms.get(room_id)
+                        if room is not None:
+                            break
+                    else:
+                        raise KeyError
+                else:
+                    room = self._rooms[scope][room_id]
             except KeyError:
                 logging.warning(
                     f'Got an event (tp:{pkg.tp}) for room Id {room_id} but '
@@ -658,7 +671,8 @@ class Client(Buildin):
             return
 
         try:
-            room_id = pkg.data['id']
+            scope = pkg.data.get('scope')  # ThingsDB < 1.8.6
+            room_id: int = pkg.data['id']
         except KeyError:
             if pkg.tp == Proto.ON_WARN:
                 warn = pkg.data
@@ -669,8 +683,9 @@ class Client(Buildin):
                 logging.warning(
                     f'Unexpected event: tp:{pkg.tp} data:{pkg.data}')
         else:
-            asyncio.ensure_future(self._on_room(room_id, pkg),
+            asyncio.ensure_future(self._on_room(scope, room_id, pkg),
                                   loop=self.get_event_loop())
+
 
     def _on_connection_lost(self, protocol: asyncio.Protocol, exc: Exception):
         if self._protocol is not protocol:
@@ -728,9 +743,10 @@ class Client(Buildin):
 
         # re-arrange the rooms per scope to combine joins in a less requests
         scopes: dict[str, list[int]] = defaultdict(list)
-        for room in self._rooms.values():
-            if room.id and room.scope:
-                scopes[room.scope].append(room.id)
+        for rooms in self._rooms.values():
+            for room in rooms.values():
+                if room.id and room.scope:
+                    scopes[room.scope].append(room.id)
 
         # join request per scope, each for one or more rooms
         await asyncio.gather(*[
