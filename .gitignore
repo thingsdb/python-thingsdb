@@ -12,3 +12,7 @@ dist/
 
 # Temporary sample files
 sample*.py
+
+
+# vscode
+.vscode/
