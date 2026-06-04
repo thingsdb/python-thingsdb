@@ -120,7 +120,7 @@ Initialize a ThingsDB client
 ```python
 async Client().authenticate(
     *auth: str | tuple,
-    timeout: int | None = 5
+    timeout: int | None = 10
 ) -> None
 ```
 
@@ -136,7 +136,7 @@ Authenticate a ThingsDB connection.
     Can be be used to control the maximum time in seconds for the
     client to wait for response on the authentication request.
     The timeout may be set to `None` in which case the client will
-    wait forever on a response. Defaults to 5.
+    wait forever on a response. Defaults to 10.
 
 ### close
 
@@ -166,7 +166,7 @@ This is equivalent of combining [close()](#close)) and [wait_closed()](#wait_clo
 Client().connect(
     host: str,
     port: int = 9200,
-    timeout: int | None = 5
+    timeout: int | None = 10
 ) -> asyncio.Future
 ```
 
@@ -189,7 +189,7 @@ connection before using the connection.
     Can be be used to control the maximum time the client will
     attempt to create a connection. The timeout may be set to
     `None` in which case the client will wait forever on a
-    response. Defaults to 5.
+    response. Defaults to 10.
 
 ### Returns
 

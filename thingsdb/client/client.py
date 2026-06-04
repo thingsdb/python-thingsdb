@@ -214,7 +214,7 @@ class Client(Buildin):
             self,
             host: str,
             port: int = 9200,
-            timeout: int | None = 5):
+            timeout: int | None = 10):
         """Connect to ThingsDB.
 
         This method will *only* create a connection, so the connection is not
@@ -234,7 +234,7 @@ class Client(Buildin):
                 Can be be used to control the maximum time the client will
                 attempt to create a connection. The timeout may be set to
                 `None` in which case the client will wait forever on a
-                response. Defaults to 5.
+                response. Defaults to 10.
 
         Returns:
             asyncio.Future (None):
@@ -288,7 +288,7 @@ class Client(Buildin):
     async def authenticate(
             self,
             *auth: str | tuple[str, str],
-            timeout: int | None = 5
+            timeout: int | None = 10
     ) -> None:
         """Authenticate a ThingsDB connection.
 
@@ -606,7 +606,7 @@ class Client(Buildin):
     def _is_websocket_host(host: str) -> bool:
         return host.startswith('ws://') or host.startswith('wss://')
 
-    async def _connect(self, timeout: int | None = 5):
+    async def _connect(self, timeout: int | None = 10):
         if not self._pool:
             return
         host, port = self._pool[self._pool_idx]
@@ -702,9 +702,9 @@ class Client(Buildin):
                 host, port = self._pool[self._pool_idx]
                 try:
                     await self._connect(timeout=timeout)
-                    await self._ping(timeout=2)
-                    await self._authenticate(timeout=5)
-                    await asyncio.wait_for(self._rejoin(), timeout=5)
+                    await self._ping(timeout=3)
+                    await self._authenticate(timeout=10)
+                    await asyncio.wait_for(self._rejoin(), timeout=10)
                 except Exception as e:
                     name = host if self._is_websocket_host(host) else \
                         f'{host}:{port}'
