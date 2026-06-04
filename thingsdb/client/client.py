@@ -301,7 +301,7 @@ class Client(Buildin):
                 Can be be used to control the maximum time in seconds for the
                 client to wait for response on the authentication request.
                 The timeout may be set to `None` in which case the client will
-                wait forever on a response. Defaults to 5.
+                wait forever on a response. Defaults to 10.
         """
         if len(auth) == 1:
             _auth = auth[0]  # token or tuple[str, str]
